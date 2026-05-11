@@ -24,6 +24,16 @@
 - CRC input is canonical serialized BookEvent fields, not raw bytes.
 - Replay invariance target: bit-identical across 100 runs.
 
+## Phase 2 Framework Status
+- Added a venue-scoped sequence tracker module (`mf::phase2::SequenceTracker`) with bounded gap window logic.
+- Added multi-venue wrapper (`mf::phase2::MultiVenueSequenceTracker`) covering NASDAQ, IEX, and Cboe as independent sequence domains.
+- Current behavior:
+  - in-order packets advance expected sequence
+  - duplicate/old packets are classified and ignored
+  - out-of-order packets within window are buffered and released deterministically once gaps are filled
+  - packets beyond window are reported as oversized gaps for recovery path handling
+- Recovery transport/retransmission interface and merged publication path are next Phase 2 items.
+
 ## Latency budget (laptop-bound target)
 - Parse/decode: 35-80 ns
 - A/B arbitration + seq tracking: 20-50 ns

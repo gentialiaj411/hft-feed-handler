@@ -63,7 +63,7 @@ std::optional<mf::core::BookEvent> DeepParser::parse_message(
   ++stats.parsed_messages;
 
   mf::core::BookEvent ev{};
-  ev.venue = mf::core::Venue::Nyse;  // Temporary venue id reused until Venue enum is renamed in a dedicated refactor.
+  ev.venue = mf::core::Venue::Iex;
   ev.sequence = sequence;
   ev.ingest_ts_ns = ingest_ts_ns;
   ev.raw_type = static_cast<std::uint8_t>(msg_type);

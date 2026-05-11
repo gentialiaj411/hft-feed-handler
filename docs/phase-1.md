@@ -79,6 +79,7 @@
 - Safe to start in Phase 2 immediately:
   - Build arbitration/recovery framework against NASDAQ + IEX interfaces.
   - Keep Cboe as pluggable path pending licensed sample data.
+  - Phase 2 kickoff now includes a compiled sequence/gap tracker framework module with dedicated tests.
 - Must stay explicit in README/interviews:
   - NYSE Pillar was swapped to IEX DEEP+ due to binary-data availability.
   - Cboe historical replay remains a licensing-gated validation item.

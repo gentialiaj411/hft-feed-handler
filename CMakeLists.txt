@@ -10,6 +10,7 @@ option(MF_ENABLE_FUZZ "Enable libFuzzer targets" OFF)
 add_library(multifeed_core
     src/core/crc32.cpp
     src/core/time.cpp
+    src/phase2/sequence_tracker.cpp
     src/proto/nasdaq/itch50_parser.cpp
     src/proto/iex/deep_parser.cpp
     src/proto/cboe/pitch_parser.cpp
@@ -27,6 +28,9 @@ target_link_libraries(phase1_parser_validate PRIVATE multifeed_core)
 
 add_executable(test_iex_deep_parser tests/test_iex_deep_parser.cpp)
 target_link_libraries(test_iex_deep_parser PRIVATE multifeed_core)
+
+add_executable(test_phase2_sequence_tracker tests/test_phase2_sequence_tracker.cpp)
+target_link_libraries(test_phase2_sequence_tracker PRIVATE multifeed_core)
 
 if(MF_ENABLE_FUZZ)
   add_executable(fuzz_nasdaq_parser tests/fuzz/fuzz_nasdaq_parser.cpp)

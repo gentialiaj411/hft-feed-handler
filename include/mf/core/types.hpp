@@ -9,7 +9,7 @@ namespace mf::core {
 
 enum class Venue : std::uint8_t {
   Nasdaq = 0,
-  Nyse = 1,
+  Iex = 1,
   Cboe = 2,
 };
 
