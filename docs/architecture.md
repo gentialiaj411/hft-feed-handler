@@ -3,7 +3,7 @@
 ## Threading (v1)
 - T0 control/config
 - T1 NASDAQ parser+arbiter (A/B)
-- T2 NYSE parser+arbiter (A/B)
+- T2 IEX parser+seq/recovery (single-stream + retransmission/replay recovery)
 - T3 Cboe parser+arbiter (A/B)
 - T4 shared book thread (round-robin venue queues)
 - T5 NBBO + features
@@ -14,6 +14,10 @@
 - Shared book thread owns all per-venue books in v1.
 - NBBO/features thread owns consolidated top-of-book and feature state.
 - All handoff via bounded preallocated SPSC queues.
+
+## Venue Redundancy Notes
+- NASDAQ ITCH and Cboe PITCH paths support A/B-style duplicate stream arbitration in replay simulation.
+- IEX DEEP historical replay is consumed as single-stream PCAP and uses sequence tracking + recovery logic (no native A/B arbitration dependency in v1 replay mode).
 
 ## Determinism
 - Canonical event stream order drives CRC32.

@@ -1,8 +1,8 @@
-#include "mf/proto/nyse/pillar_parser.hpp"
+#include "mf/proto/iex/deep_parser.hpp"
 
 #include <cstring>
 
-#include "mf/proto/nyse/pillar_messages.hpp"
+#include "mf/proto/iex/deep_messages.hpp"
 
 namespace {
 
@@ -26,9 +26,9 @@ mf::core::Side decode_side(char c) noexcept {
 
 }  // namespace
 
-namespace mf::proto::nyse {
+namespace mf::proto::iex {
 
-std::optional<mf::core::BookEvent> PillarParser::parse_message(
+std::optional<mf::core::BookEvent> DeepParser::parse_message(
     std::span<const std::byte> payload,
     std::uint64_t sequence,
     std::uint64_t ingest_ts_ns,
@@ -124,4 +124,4 @@ std::optional<mf::core::BookEvent> PillarParser::parse_message(
   }
 }
 
-}  // namespace mf::proto::nyse
+}  // namespace mf::proto::iex

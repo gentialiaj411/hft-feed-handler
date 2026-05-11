@@ -8,7 +8,7 @@
 
 #include "mf/core/types.hpp"
 
-namespace mf::proto::nyse {
+namespace mf::proto::iex {
 
 struct ParseStats {
   std::array<std::uint64_t, 65536> type_counts{};
@@ -16,7 +16,7 @@ struct ParseStats {
   std::uint64_t malformed_messages{0};
 };
 
-class PillarParser {
+class DeepParser {
  public:
   [[nodiscard]] std::optional<mf::core::BookEvent> parse_message(
       std::span<const std::byte> payload,
@@ -25,4 +25,4 @@ class PillarParser {
       ParseStats& stats) const noexcept;
 };
 
-}  // namespace mf::proto::nyse
+}  // namespace mf::proto::iex

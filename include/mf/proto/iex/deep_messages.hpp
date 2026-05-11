@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace mf::proto::nyse {
+namespace mf::proto::iex {
 
 #pragma pack(push, 1)
 
@@ -14,7 +14,7 @@ struct CommonHeader {
   std::uint32_t symbol_index_le;
   std::uint32_t symbol_seq_num_le;
 };
-static_assert(sizeof(CommonHeader) == 16, "Pillar layout drift: CommonHeader");
+static_assert(sizeof(CommonHeader) == 16, "IEX DEEP layout drift: CommonHeader");
 
 // Msg Type 100, size 39
 struct AddOrderMessage {
@@ -26,7 +26,7 @@ struct AddOrderMessage {
   std::array<char, 5> firm_id;
   std::uint8_t reserved_1;
 };
-static_assert(sizeof(AddOrderMessage) == 39, "Pillar layout drift: AddOrderMessage");
+static_assert(sizeof(AddOrderMessage) == 39, "IEX DEEP layout drift: AddOrderMessage");
 
 // Msg Type 101, size 35
 struct ModifyOrderMessage {
@@ -38,7 +38,7 @@ struct ModifyOrderMessage {
   std::uint8_t reserved_1;
   std::uint8_t reserved_2;
 };
-static_assert(sizeof(ModifyOrderMessage) == 35, "Pillar layout drift: ModifyOrderMessage");
+static_assert(sizeof(ModifyOrderMessage) == 35, "IEX DEEP layout drift: ModifyOrderMessage");
 
 // Msg Type 102, size 25
 struct DeleteOrderMessage {
@@ -46,7 +46,7 @@ struct DeleteOrderMessage {
   std::uint64_t order_id_le;
   std::uint8_t reserved_1;
 };
-static_assert(sizeof(DeleteOrderMessage) == 25, "Pillar layout drift: DeleteOrderMessage");
+static_assert(sizeof(DeleteOrderMessage) == 25, "IEX DEEP layout drift: DeleteOrderMessage");
 
 // Msg Type 103, size 42
 struct OrderExecutionMessage {
@@ -62,7 +62,7 @@ struct OrderExecutionMessage {
   char trade_cond_3;
   char trade_cond_4;
 };
-static_assert(sizeof(OrderExecutionMessage) == 42, "Pillar layout drift: OrderExecutionMessage");
+static_assert(sizeof(OrderExecutionMessage) == 42, "IEX DEEP layout drift: OrderExecutionMessage");
 
 // Msg Type 110, size 33
 struct NonDisplayedTradeMessage {
@@ -76,8 +76,8 @@ struct NonDisplayedTradeMessage {
   char trade_cond_3;
   char trade_cond_4;
 };
-static_assert(sizeof(NonDisplayedTradeMessage) == 33, "Pillar layout drift: NonDisplayedTradeMessage");
+static_assert(sizeof(NonDisplayedTradeMessage) == 33, "IEX DEEP layout drift: NonDisplayedTradeMessage");
 
 #pragma pack(pop)
 
-}  // namespace mf::proto::nyse
+}  // namespace mf::proto::iex

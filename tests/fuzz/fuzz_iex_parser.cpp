@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "mf/core/time.hpp"
-#include "mf/proto/nyse/pillar_parser.hpp"
+#include "mf/proto/iex/deep_parser.hpp"
 
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
   if (size == 0) {
@@ -16,8 +16,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     payload[i] = static_cast<std::byte>(data[i]);
   }
 
-  mf::proto::nyse::PillarParser parser;
-  mf::proto::nyse::ParseStats stats;
+  mf::proto::iex::DeepParser parser;
+  mf::proto::iex::ParseStats stats;
   (void)parser.parse_message(std::span<const std::byte>(payload.data(), payload.size()), 1, mf::core::monotonic_raw_now_ns(), stats);
   return 0;
 }

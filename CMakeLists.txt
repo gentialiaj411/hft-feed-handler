@@ -11,7 +11,7 @@ add_library(multifeed_core
     src/core/crc32.cpp
     src/core/time.cpp
     src/proto/nasdaq/itch50_parser.cpp
-    src/proto/nyse/pillar_parser.cpp
+    src/proto/iex/deep_parser.cpp
     src/proto/cboe/pitch_parser.cpp
 )
 
@@ -31,10 +31,10 @@ if(MF_ENABLE_FUZZ)
   target_compile_options(fuzz_nasdaq_parser PRIVATE -fsanitize=fuzzer,address,undefined)
   target_link_options(fuzz_nasdaq_parser PRIVATE -fsanitize=fuzzer,address,undefined)
 
-  add_executable(fuzz_nyse_parser tests/fuzz/fuzz_nyse_parser.cpp)
-  target_link_libraries(fuzz_nyse_parser PRIVATE multifeed_core)
-  target_compile_options(fuzz_nyse_parser PRIVATE -fsanitize=fuzzer,address,undefined)
-  target_link_options(fuzz_nyse_parser PRIVATE -fsanitize=fuzzer,address,undefined)
+  add_executable(fuzz_iex_parser tests/fuzz/fuzz_iex_parser.cpp)
+  target_link_libraries(fuzz_iex_parser PRIVATE multifeed_core)
+  target_compile_options(fuzz_iex_parser PRIVATE -fsanitize=fuzzer,address,undefined)
+  target_link_options(fuzz_iex_parser PRIVATE -fsanitize=fuzzer,address,undefined)
 
   add_executable(fuzz_cboe_parser tests/fuzz/fuzz_cboe_parser.cpp)
   target_link_libraries(fuzz_cboe_parser PRIVATE multifeed_core)
