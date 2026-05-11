@@ -1,0 +1,30 @@
+# MultiFeed Architecture (Locked v1)
+
+## Threading (v1)
+- T0 control/config
+- T1 NASDAQ parser+arbiter (A/B)
+- T2 NYSE parser+arbiter (A/B)
+- T3 Cboe parser+arbiter (A/B)
+- T4 shared book thread (round-robin venue queues)
+- T5 NBBO + features
+- T6 JIT consumer bridge
+
+## Data Ownership
+- Parser threads own protocol decode state and sequence state.
+- Shared book thread owns all per-venue books in v1.
+- NBBO/features thread owns consolidated top-of-book and feature state.
+- All handoff via bounded preallocated SPSC queues.
+
+## Determinism
+- Canonical event stream order drives CRC32.
+- CRC input is canonical serialized BookEvent fields, not raw bytes.
+- Replay invariance target: bit-identical across 100 runs.
+
+## Latency budget (laptop-bound target)
+- Parse/decode: 35-80 ns
+- A/B arbitration + seq tracking: 20-50 ns
+- Shared book update: 100-220 ns
+- NBBO update: 25-70 ns
+- Feature update: 120-350 ns
+- SPSC publish to JIT: 80-250 ns
+- End-to-end (parse entry -> feature vector publish): 380-1,020 ns p99 envelope
