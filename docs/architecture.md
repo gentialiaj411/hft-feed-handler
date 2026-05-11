@@ -46,6 +46,7 @@
   - deterministic gap-buffer release path
   - `DeterministicMerger` (canonical publish order)
 - It reports `merged_crc32` and recovery/gap counters for deterministic framework bring-up.
+- Deterministic merge ordering is covered by a dedicated unit-style CRC invariance test (`test_phase2_determinism_crc`) that compares multiple arrival permutations of the same logical event set.
 
 ## Latency budget (laptop-bound target)
 - Parse/decode: 35-80 ns

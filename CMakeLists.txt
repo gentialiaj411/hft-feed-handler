@@ -41,6 +41,9 @@ target_link_libraries(test_phase2_recovery_merge PRIVATE multifeed_core)
 add_executable(test_phase2_recovery_simulator tests/test_phase2_recovery_simulator.cpp)
 target_link_libraries(test_phase2_recovery_simulator PRIVATE multifeed_core)
 
+add_executable(test_phase2_determinism_crc tests/test_phase2_determinism_crc.cpp)
+target_link_libraries(test_phase2_determinism_crc PRIVATE multifeed_core)
+
 if(MF_ENABLE_FUZZ)
   add_executable(fuzz_nasdaq_parser tests/fuzz/fuzz_nasdaq_parser.cpp)
   target_link_libraries(fuzz_nasdaq_parser PRIVATE multifeed_core)
