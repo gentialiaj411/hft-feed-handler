@@ -18,8 +18,9 @@ struct SecurityEventMessage {
   char msg_type;                 // 'E'
   char security_event;
   std::uint64_t timestamp_le;
+  std::array<char, 8> symbol;
 };
-static_assert(sizeof(SecurityEventMessage) == 10, "IEX DEEP+ layout drift: SecurityEventMessage");
+static_assert(sizeof(SecurityEventMessage) == 18, "IEX DEEP+ layout drift: SecurityEventMessage");
 
 // IEX DEEP+ v1.02, Trading Message Formats (pages 16-22)
 struct AddOrderMessage {

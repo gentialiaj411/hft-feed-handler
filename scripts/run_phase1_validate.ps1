@@ -1,6 +1,6 @@
 param(
   [string]$NasdaqGz = "data/raw/nasdaq/tvagg.gz",
-  [string]$IexGz = "data/raw/iex/iex_deep_sample.pcap.gz",
+  [string]$IexGz = "data/raw/iex/20241001_IEXTP1_DPLS1.0.pcap.gz",
   [string]$CboeGz = "",
   [string]$BuildDir = "build/Debug"
 )

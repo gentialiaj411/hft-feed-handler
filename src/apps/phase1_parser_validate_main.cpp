@@ -103,6 +103,117 @@ RunSummary run_framed_file(const std::string& path, ParserT& parser, StatsT& sta
   return summary;
 }
 
+template <typename IexParserT, typename IexStatsT>
+RunSummary run_iex_pcap_file(const std::string& path, IexParserT& parser, IexStatsT& stats) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) {
+    throw std::runtime_error("failed to open iex pcap file: " + path);
+  }
+
+  // libpcap global header
+  std::array<std::uint8_t, 24> gh{};
+  if (!in.read(reinterpret_cast<char*>(gh.data()), static_cast<std::streamsize>(gh.size()))) {
+    throw std::runtime_error("pcap global header read failure: " + path);
+  }
+
+  const std::uint32_t magic_le = static_cast<std::uint32_t>(gh[0]) |
+                                 (static_cast<std::uint32_t>(gh[1]) << 8U) |
+                                 (static_cast<std::uint32_t>(gh[2]) << 16U) |
+                                 (static_cast<std::uint32_t>(gh[3]) << 24U);
+  if (magic_le != 0xa1b2c3d4U && magic_le != 0xd4c3b2a1U) {
+    throw std::runtime_error("unsupported pcap magic value");
+  }
+
+  RunSummary summary;
+  std::uint64_t seq = 1;
+
+  while (true) {
+    std::array<std::uint8_t, 16> ph{};
+    if (!in.read(reinterpret_cast<char*>(ph.data()), static_cast<std::streamsize>(ph.size()))) {
+      break;
+    }
+
+    const std::uint32_t incl_len = static_cast<std::uint32_t>(ph[8]) |
+                                   (static_cast<std::uint32_t>(ph[9]) << 8U) |
+                                   (static_cast<std::uint32_t>(ph[10]) << 16U) |
+                                   (static_cast<std::uint32_t>(ph[11]) << 24U);
+    if (incl_len == 0U) {
+      ++summary.malformed;
+      continue;
+    }
+
+    std::vector<std::uint8_t> pkt(incl_len);
+    if (!in.read(reinterpret_cast<char*>(pkt.data()), static_cast<std::streamsize>(incl_len))) {
+      break;
+    }
+
+    // Ethernet (14) + IPv4 + UDP expected.
+    if (pkt.size() < 42) {
+      ++summary.malformed;
+      continue;
+    }
+    if (!(pkt[12] == 0x08 && pkt[13] == 0x00)) {  // IPv4 Ethertype
+      continue;
+    }
+    const std::size_t ip_off = 14;
+    const std::uint8_t ihl_words = static_cast<std::uint8_t>(pkt[ip_off] & 0x0FU);
+    const std::size_t ip_hlen = static_cast<std::size_t>(ihl_words) * 4U;
+    if (ip_hlen < 20U || pkt.size() < ip_off + ip_hlen + 8U) {
+      ++summary.malformed;
+      continue;
+    }
+    if (pkt[ip_off + 9] != 17U) {  // UDP
+      continue;
+    }
+
+    const std::size_t udp_off = ip_off + ip_hlen;
+    const std::uint16_t udp_len = static_cast<std::uint16_t>((static_cast<std::uint16_t>(pkt[udp_off + 4]) << 8U) |
+                                                              static_cast<std::uint16_t>(pkt[udp_off + 5]));
+    if (udp_len < 8U) {
+      ++summary.malformed;
+      continue;
+    }
+    const std::size_t udp_payload_len = static_cast<std::size_t>(udp_len) - 8U;
+    if (pkt.size() < udp_off + 8U + udp_payload_len) {
+      ++summary.malformed;
+      continue;
+    }
+
+    const std::uint8_t* payload = pkt.data() + udp_off + 8U;
+    if (udp_payload_len < 40U) {
+      ++summary.malformed;
+      continue;
+    }
+
+    // IEX-TP UDP payload begins with a 40-byte transport/session header.
+    std::size_t off = 40U;
+    while (off + 2U <= udp_payload_len) {
+      const std::uint16_t msg_len = static_cast<std::uint16_t>(payload[off]) |
+                                    static_cast<std::uint16_t>(payload[off + 1] << 8U);
+      off += 2U;
+      if (msg_len == 0U || off + msg_len > udp_payload_len) {
+        ++summary.malformed;
+        break;
+      }
+
+      ++summary.frames;
+      auto ev = parser.parse_message(
+          std::span<const std::byte>(reinterpret_cast<const std::byte*>(payload + off), msg_len),
+          seq++,
+          mf::core::monotonic_raw_now_ns(),
+          stats);
+      if (ev.has_value()) {
+        ++summary.parsed;
+        update_crc_from_event(summary.crc, *ev);
+      }
+      off += msg_len;
+    }
+  }
+
+  summary.malformed += stats.malformed_messages;
+  return summary;
+}
+
 template <typename StatsT>
 void print_type_counts(const StatsT& stats) {
   for (std::size_t i = 0; i < stats.type_counts.size(); ++i) {
@@ -168,7 +279,7 @@ int main(int argc, char** argv) {
 
     mf::proto::iex::DeepParser iex_parser;
     mf::proto::iex::ParseStats iex_stats;
-    const RunSummary iex = run_framed_file(argv[2], iex_parser, iex_stats, "iex");
+    const RunSummary iex = run_iex_pcap_file(argv[2], iex_parser, iex_stats);
     print_summary("iex", iex);
     std::cout << "type_counts:\n";
     print_type_counts(iex_stats);

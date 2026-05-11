@@ -42,10 +42,15 @@
   - `data/raw/expanded/nasdaq.bin`: binary-like
   - `data/raw/expanded/nyse.bin`: text/csv-like (not wire-format binary)
   - `data/raw/expanded/nyse_openbook.bin`: binary-like (OPENBOOK, not Pillar)
+  - `data/raw/expanded/iex.bin`: binary-like (IEXTP1/DEEP+ pcap payload carrier)
 - NASDAQ replay run:
   - command: `phase1_parser_validate --nasdaq-only data/raw/expanded/nasdaq.bin`
   - frames=`27,798,910`, parsed=`2,003`, malformed=`27,796,907`, crc32=`0x08158a87`
   - interpretation: parser and binary-file ingestion execute, but this sample file's framing/container does not match the validator's current framed-message assumption. A format adapter is required for true end-to-end decode rates.
+- IEX replay run:
+  - command: `phase1_parser_validate data/raw/expanded/nasdaq.bin data/raw/expanded/iex.bin`
+  - iex frames=`59,367`, parsed=`59,367`, malformed=`0`, crc32=`0xc58c75ae`
+  - interpretation: IEX-TP/PCAP replay adapter and DEEP+ subset parser are functioning on real historical sample data.
 
 ## Notes
 - Exchange totals are preferred where published; otherwise use checked-in manifest counts + sha256 under `data/manifests/`.

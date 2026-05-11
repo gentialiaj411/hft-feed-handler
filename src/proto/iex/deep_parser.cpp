@@ -91,6 +91,7 @@ std::optional<mf::core::BookEvent> DeepParser::parse_message(
       std::memcpy(&m, payload.data(), sizeof(m));
       ev.type = mf::core::EventType::System;
       ev.exchange_ts_ns = read_le(m.timestamp_le);
+      copy_symbol(ev.symbol, m.symbol);
       return ev;
     }
     case 'a': {
