@@ -36,7 +36,15 @@
   - packets beyond window are reported as oversized gaps for recovery path handling
 - Remaining Phase 2 work:
   - bind recovery requests to replay/retransmission simulation transport
-  - integrate merged output into canonical publication/CRC path
+  - integrate merged output path into dedicated benchmark and JIT bridge
+
+### Validator Integration (Phase 2)
+- `phase1_parser_validate` now has `--phase2-merge <nasdaq_file> <iex_pcap_file>`.
+- This mode routes parsed events through:
+  - `GapAwareSequencer` (per-venue sequence/gap state + recovery request signaling)
+  - deterministic gap-buffer release path
+  - `DeterministicMerger` (canonical publish order)
+- It reports `merged_crc32` and recovery/gap counters for deterministic framework bring-up.
 
 ## Latency budget (laptop-bound target)
 - Parse/decode: 35-80 ns

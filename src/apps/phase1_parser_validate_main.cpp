@@ -4,14 +4,17 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
 #include "mf/core/crc32.hpp"
 #include "mf/core/time.hpp"
+#include "mf/phase2/deterministic_merger.hpp"
+#include "mf/phase2/recovery.hpp"
 #include "mf/proto/cboe/pitch_parser.hpp"
-#include "mf/proto/nasdaq/itch50_parser.hpp"
 #include "mf/proto/iex/deep_parser.hpp"
+#include "mf/proto/nasdaq/itch50_parser.hpp"
 
 namespace {
 
@@ -20,6 +23,15 @@ struct RunSummary {
   std::uint64_t parsed{0};
   std::uint64_t malformed{0};
   std::uint32_t crc{0};
+};
+
+struct Phase2Summary {
+  std::uint64_t accepted{0};
+  std::uint64_t dropped_duplicate_or_old{0};
+  std::uint64_t buffered_out_of_order{0};
+  std::uint64_t dropped_gap_too_large{0};
+  std::uint64_t recovery_requests{0};
+  std::uint32_t merged_crc{0};
 };
 
 std::uint16_t read_u16_be(const std::uint8_t* p) {
@@ -230,9 +242,274 @@ void print_summary(const char* venue_name, const RunSummary& summary) {
   std::cout << "crc32=0x" << std::hex << std::setw(8) << std::setfill('0') << summary.crc << std::dec << "\n";
 }
 
+class CountingRecoveryHandler final : public mf::phase2::IRecoveryHandler {
+ public:
+  void request_recovery(const mf::phase2::RecoveryRequest&) noexcept override {
+    ++count;
+  }
+  std::uint64_t count{0};
+};
+
+class Phase2EventPipeline {
+ public:
+  Phase2EventPipeline(std::uint64_t gap_window, std::size_t per_venue_capacity)
+      : sequencer_(gap_window), merger_(per_venue_capacity) {
+    sequencer_.set_recovery_handler(&recovery_counter_);
+  }
+
+  void on_event(const mf::core::BookEvent& ev, Phase2Summary& summary) {
+    auto result = sequencer_.on_sequence(ev.venue, ev.sequence);
+    if (result.recovery.has_value()) {
+      ++summary.recovery_requests;
+    }
+
+    if (result.update.status == mf::phase2::SequenceStatus::DuplicateOrOld) {
+      ++summary.dropped_duplicate_or_old;
+      return;
+    }
+    if (result.update.status == mf::phase2::SequenceStatus::GapTooLarge) {
+      ++summary.dropped_gap_too_large;
+      return;
+    }
+
+    auto& pending = pending_by_venue_[venue_index(ev.venue)];
+    if (result.update.status == mf::phase2::SequenceStatus::GapBuffered) {
+      pending[ev.sequence] = ev;
+      ++summary.buffered_out_of_order;
+      return;
+    }
+
+    if (result.update.status == mf::phase2::SequenceStatus::InOrder) {
+      publish(ev, summary);
+      std::uint64_t to_release = (result.update.released_count > 0) ? (result.update.released_count - 1) : 0;
+      std::uint64_t seq = ev.sequence + 1;
+      while (to_release > 0) {
+        auto it = pending.find(seq);
+        if (it == pending.end()) {
+          break;
+        }
+        publish(it->second, summary);
+        pending.erase(it);
+        ++seq;
+        --to_release;
+      }
+    }
+  }
+
+  void finalize(Phase2Summary& summary) {
+    mf::core::BookEvent ev{};
+    while (merger_.pop_next(ev)) {
+      update_crc_from_event(summary.merged_crc, ev);
+    }
+    summary.recovery_requests = recovery_counter_.count;
+  }
+
+ private:
+  static std::size_t venue_index(mf::core::Venue venue) noexcept {
+    return static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
+  }
+
+  void publish(const mf::core::BookEvent& ev, Phase2Summary& summary) {
+    if (merger_.push(ev)) {
+      ++summary.accepted;
+    }
+  }
+
+  mf::phase2::GapAwareSequencer sequencer_;
+  mf::phase2::DeterministicMerger merger_;
+  CountingRecoveryHandler recovery_counter_{};
+  std::array<std::map<std::uint64_t, mf::core::BookEvent>, 3> pending_by_venue_{};
+};
+
+template <typename ParserT, typename StatsT>
+RunSummary run_framed_file_phase2(
+    const std::string& path,
+    ParserT& parser,
+    StatsT& stats,
+    const char* venue_name,
+    Phase2EventPipeline& pipeline,
+    Phase2Summary& phase2) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) {
+    throw std::runtime_error(std::string("failed to open input file for ") + venue_name + ": " + path);
+  }
+
+  RunSummary summary;
+  std::array<std::uint8_t, 2> len_buf{};
+  std::uint64_t seq = 1;
+
+  while (in.read(reinterpret_cast<char*>(len_buf.data()), len_buf.size())) {
+    const std::uint16_t msg_len = read_u16_be(len_buf.data());
+    if (msg_len == 0) {
+      ++summary.malformed;
+      continue;
+    }
+
+    std::vector<std::byte> msg(msg_len);
+    if (!in.read(reinterpret_cast<char*>(msg.data()), static_cast<std::streamsize>(msg_len))) {
+      break;
+    }
+
+    ++summary.frames;
+    auto ev = parser.parse_message(
+        std::span<const std::byte>(msg.data(), msg.size()),
+        seq++,
+        mf::core::monotonic_raw_now_ns(),
+        stats);
+    if (!ev.has_value()) {
+      continue;
+    }
+    ++summary.parsed;
+    update_crc_from_event(summary.crc, *ev);
+    pipeline.on_event(*ev, phase2);
+  }
+
+  summary.malformed += stats.malformed_messages;
+  return summary;
+}
+
+template <typename IexParserT, typename IexStatsT>
+RunSummary run_iex_pcap_file_phase2(
+    const std::string& path,
+    IexParserT& parser,
+    IexStatsT& stats,
+    Phase2EventPipeline& pipeline,
+    Phase2Summary& phase2) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) {
+    throw std::runtime_error("failed to open iex pcap file: " + path);
+  }
+
+  std::array<std::uint8_t, 24> gh{};
+  if (!in.read(reinterpret_cast<char*>(gh.data()), static_cast<std::streamsize>(gh.size()))) {
+    throw std::runtime_error("pcap global header read failure: " + path);
+  }
+
+  const std::uint32_t magic_le = static_cast<std::uint32_t>(gh[0]) |
+                                 (static_cast<std::uint32_t>(gh[1]) << 8U) |
+                                 (static_cast<std::uint32_t>(gh[2]) << 16U) |
+                                 (static_cast<std::uint32_t>(gh[3]) << 24U);
+  if (magic_le != 0xa1b2c3d4U && magic_le != 0xd4c3b2a1U) {
+    throw std::runtime_error("unsupported pcap magic value");
+  }
+
+  RunSummary summary;
+  std::uint64_t seq = 1;
+
+  while (true) {
+    std::array<std::uint8_t, 16> ph{};
+    if (!in.read(reinterpret_cast<char*>(ph.data()), static_cast<std::streamsize>(ph.size()))) {
+      break;
+    }
+    const std::uint32_t incl_len = static_cast<std::uint32_t>(ph[8]) |
+                                   (static_cast<std::uint32_t>(ph[9]) << 8U) |
+                                   (static_cast<std::uint32_t>(ph[10]) << 16U) |
+                                   (static_cast<std::uint32_t>(ph[11]) << 24U);
+    if (incl_len == 0U) {
+      ++summary.malformed;
+      continue;
+    }
+
+    std::vector<std::uint8_t> pkt(incl_len);
+    if (!in.read(reinterpret_cast<char*>(pkt.data()), static_cast<std::streamsize>(incl_len))) {
+      break;
+    }
+    if (pkt.size() < 42 || !(pkt[12] == 0x08 && pkt[13] == 0x00)) continue;
+
+    const std::size_t ip_off = 14;
+    const std::size_t ip_hlen = static_cast<std::size_t>(pkt[ip_off] & 0x0FU) * 4U;
+    if (ip_hlen < 20U || pkt.size() < ip_off + ip_hlen + 8U || pkt[ip_off + 9] != 17U) continue;
+
+    const std::size_t udp_off = ip_off + ip_hlen;
+    const std::uint16_t udp_len = static_cast<std::uint16_t>((static_cast<std::uint16_t>(pkt[udp_off + 4]) << 8U) |
+                                                              static_cast<std::uint16_t>(pkt[udp_off + 5]));
+    if (udp_len < 8U) {
+      ++summary.malformed;
+      continue;
+    }
+    const std::size_t udp_payload_len = static_cast<std::size_t>(udp_len) - 8U;
+    if (pkt.size() < udp_off + 8U + udp_payload_len || udp_payload_len < 40U) {
+      ++summary.malformed;
+      continue;
+    }
+
+    const std::uint8_t* payload = pkt.data() + udp_off + 8U;
+    std::size_t off = 40U;
+    while (off + 2U <= udp_payload_len) {
+      const std::uint16_t msg_len = static_cast<std::uint16_t>(payload[off]) |
+                                    static_cast<std::uint16_t>(payload[off + 1] << 8U);
+      off += 2U;
+      if (msg_len == 0U || off + msg_len > udp_payload_len) {
+        ++summary.malformed;
+        break;
+      }
+
+      ++summary.frames;
+      auto ev = parser.parse_message(
+          std::span<const std::byte>(reinterpret_cast<const std::byte*>(payload + off), msg_len),
+          seq++,
+          mf::core::monotonic_raw_now_ns(),
+          stats);
+      if (ev.has_value()) {
+        ++summary.parsed;
+        update_crc_from_event(summary.crc, *ev);
+        pipeline.on_event(*ev, phase2);
+      }
+      off += msg_len;
+    }
+  }
+
+  summary.malformed += stats.malformed_messages;
+  return summary;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
+  if (argc == 4 && std::string(argv[1]) == "--phase2-merge") {
+    try {
+      if (looks_like_text_csv(argv[2])) {
+        throw std::runtime_error("nasdaq input appears to be text/CSV, expected framed binary wire messages");
+      }
+      if (looks_like_text_csv(argv[3])) {
+        throw std::runtime_error("iex input appears to be text/CSV, expected pcap-derived binary");
+      }
+
+      mf::proto::nasdaq::Itch50Parser nasdaq_parser;
+      mf::proto::nasdaq::ParseStats nasdaq_stats;
+      mf::proto::iex::DeepParser iex_parser;
+      mf::proto::iex::ParseStats iex_stats;
+      Phase2Summary phase2{};
+      Phase2EventPipeline pipeline(/*gap_window=*/256, /*per_venue_capacity=*/1U << 20U);
+
+      const RunSummary nasdaq =
+          run_framed_file_phase2(argv[2], nasdaq_parser, nasdaq_stats, "nasdaq", pipeline, phase2);
+      const RunSummary iex =
+          run_iex_pcap_file_phase2(argv[3], iex_parser, iex_stats, pipeline, phase2);
+
+      pipeline.finalize(phase2);
+
+      print_summary("nasdaq", nasdaq);
+      std::cout << "type_counts:\n";
+      print_type_counts(nasdaq_stats);
+      print_summary("iex", iex);
+      std::cout << "type_counts:\n";
+      print_type_counts(iex_stats);
+      std::cout << "[phase2]\n";
+      std::cout << "accepted=" << phase2.accepted << "\n";
+      std::cout << "dropped_duplicate_or_old=" << phase2.dropped_duplicate_or_old << "\n";
+      std::cout << "buffered_out_of_order=" << phase2.buffered_out_of_order << "\n";
+      std::cout << "dropped_gap_too_large=" << phase2.dropped_gap_too_large << "\n";
+      std::cout << "recovery_requests=" << phase2.recovery_requests << "\n";
+      std::cout << "merged_crc32=0x" << std::hex << std::setw(8) << std::setfill('0') << phase2.merged_crc << std::dec
+                << "\n";
+      return 0;
+    } catch (const std::exception& ex) {
+      std::cerr << ex.what() << "\n";
+      return 1;
+    }
+  }
+
   if (argc == 3 && std::string(argv[1]) == "--nasdaq-only") {
     try {
       if (looks_like_text_csv(argv[2])) {
@@ -274,6 +551,7 @@ int main(int argc, char** argv) {
 
   if (argc != 3 && argc != 4) {
     std::cerr << "usage: phase1_parser_validate <nasdaq_itch_file> <iex_deep_file> [cboe_pitch_file]\n";
+    std::cerr << "   or: phase1_parser_validate --phase2-merge <nasdaq_itch_file> <iex_pcap_file>\n";
     std::cerr << "   or: phase1_parser_validate --nasdaq-only <nasdaq_itch_file>\n";
     std::cerr << "   or: phase1_parser_validate --iex-only <iex_pcap_file>\n";
     return 2;
