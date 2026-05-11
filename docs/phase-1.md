@@ -19,9 +19,18 @@
 
 ## Current Status
 - Implemented: parser framework + three protocol parsers + fuzz wiring + multi-feed validator CLI.
-- Pending for Phase 1 sign-off: run sanity validation on provided sample files (including 1GB run) and capture message counts/CRC outputs.
+- Data acquired in-repo:
+  - NASDAQ sample: `data/raw/nasdaq/tvagg.gz`
+  - NYSE sample: `data/raw/nyse/EQY_US_NYSE_IBF_1_20260102.gz`
+- Cboe historical sample status:
+  - Cboe PITCH historical downloads are license-gated/commercial on DataShop for full datasets.
+  - Parser implementation is spec-based and fuzz-wired, but full historical replay validation is pending licensed sample access.
+- Pending for Phase 1 sign-off:
+  - Run sanity validation on NASDAQ + NYSE sample files and capture message counts/CRC outputs.
+  - Run Cboe historical replay validation once licensed sample data is available.
 
 ## Notes
 - Exchange totals are preferred where published; otherwise use checked-in manifest counts + sha256 under `data/manifests/`.
 - Each `BookEvent` carries both `exchange_ts_ns` and `ingest_ts_ns`.
 - Cboe PITCH uses fixed-length ASCII field parsing (including base36 IDs), not binary integer fields.
+- This repository does not include redistributed proprietary exchange payload files; only locally downloaded samples are used for validation.
