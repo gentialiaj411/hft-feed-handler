@@ -51,6 +51,10 @@
   - command: `phase1_parser_validate data/raw/expanded/nasdaq.bin data/raw/expanded/iex.bin`
   - iex frames=`59,367`, parsed=`59,367`, malformed=`0`, crc32=`0xc58c75ae`
   - interpretation: IEX-TP/PCAP replay adapter and DEEP+ subset parser are functioning on real historical sample data.
+- IEX determinism run (100 replays):
+  - command: `powershell -ExecutionPolicy Bypass -File scripts/run_determinism_iex.ps1 -Runs 100`
+  - result: `unique_crc_count=1`, `deterministic=true`, stable crc=`0xc58c75ae`
+  - interpretation: for the current IEX DEEP+ subset and sample, replay output is bit-stable across 100 runs.
 
 ## Notes
 - Exchange totals are preferred where published; otherwise use checked-in manifest counts + sha256 under `data/manifests/`.

@@ -252,10 +252,30 @@ int main(int argc, char** argv) {
       return 1;
     }
   }
+  if (argc == 3 && std::string(argv[1]) == "--iex-only") {
+    try {
+      if (looks_like_text_csv(argv[2])) {
+        throw std::runtime_error("iex input appears to be text/CSV, expected pcap-derived binary");
+      }
+      mf::proto::iex::DeepParser iex_parser;
+      mf::proto::iex::ParseStats iex_stats;
+      const RunSummary iex = run_iex_pcap_file(argv[2], iex_parser, iex_stats);
+      print_summary("iex", iex);
+      std::cout << "type_counts:\n";
+      print_type_counts(iex_stats);
+      std::cout << "[combined]\n";
+      std::cout << "crc32_xor=0x" << std::hex << std::setw(8) << std::setfill('0') << iex.crc << std::dec << "\n";
+      return 0;
+    } catch (const std::exception& ex) {
+      std::cerr << ex.what() << "\n";
+      return 1;
+    }
+  }
 
   if (argc != 3 && argc != 4) {
     std::cerr << "usage: phase1_parser_validate <nasdaq_itch_file> <iex_deep_file> [cboe_pitch_file]\n";
     std::cerr << "   or: phase1_parser_validate --nasdaq-only <nasdaq_itch_file>\n";
+    std::cerr << "   or: phase1_parser_validate --iex-only <iex_pcap_file>\n";
     return 2;
   }
 
