@@ -4,7 +4,7 @@
 - Protocol-agnostic core types (`types.hpp`, `time.hpp`, `crc32.hpp`)
 - Branchless big-endian decode helper (`read_be<T>`)
 - NASDAQ ITCH 5.0 parser for major message types (`A/F/E/C/X/D/U/P/Q/I/S/R`)
-- IEX DEEP parser path (initial parser module wired; full spec-accurate decode in progress)
+- IEX DEEP+ parser path (core subset implemented against v1.02 spec)
 - Cboe PITCH core message parsing (`A/d/1`, `E`, `X`, `P/r/2`)
 - Compile-time wire-layout guards (`static_assert(sizeof(...))`)
 - Validation harness for type counts + canonical CRC32 on normalized stream
@@ -28,7 +28,7 @@
   - IEX/NYSE/Cboe: pending wire-format-compatible captures for full 3-venue replay
 - Venue swap note:
   - NYSE Pillar was replaced with IEX DEEP for this project because free publicly downloadable NYSE historical files are TAQ reconstructions (text/CSV) rather than Pillar wire-format binary captures.
-  - IEX DEEP provides public historical `pcap.gz` binary captures and an official spec, making replay-based validation feasible without exchange licensing cost.
+  - IEX DEEP+ provides public historical `pcap.gz` binary captures and an official spec, making replay-based validation feasible without exchange licensing cost.
 - Cboe historical sample status:
   - Cboe PITCH historical downloads are license-gated/commercial on DataShop for full datasets.
   - Parser implementation is spec-based and fuzz-wired, but full historical replay validation is pending licensed sample access.
@@ -55,6 +55,11 @@
   - command: `powershell -ExecutionPolicy Bypass -File scripts/run_determinism_iex.ps1 -Runs 100`
   - result: `unique_crc_count=1`, `deterministic=true`, stable crc=`0xc58c75ae`
   - interpretation: for the current IEX DEEP+ subset and sample, replay output is bit-stable across 100 runs.
+- IEX replay throughput snapshot (Windows build, single-process replay):
+  - command: `powershell -ExecutionPolicy Bypass -File scripts/bench_iex_replay.ps1 -Runs 10`
+  - frames/run=`59,367`
+  - avg=`99.606 ms`, p50=`99.151 ms`, p99=`101.687 ms`
+  - avg throughput=`596,019.15 msgs/sec`
 
 ## Notes
 - Exchange totals are preferred where published; otherwise use checked-in manifest counts + sha256 under `data/manifests/`.
