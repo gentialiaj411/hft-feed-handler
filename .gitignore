@@ -46,3 +46,8 @@ latency_benchmark
 test_ring_buffer
 test_parser
 test_order_book
+data/raw/
+data/raw/expanded/
+*.bin
+*.pcap
+*.pcap.gz
