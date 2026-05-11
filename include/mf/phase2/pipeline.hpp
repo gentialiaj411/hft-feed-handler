@@ -14,6 +14,7 @@ namespace mf::phase2 {
 
 struct PipelineStats {
   std::uint64_t accepted{0};
+  std::uint64_t dropped_publish_overflow{0};
   std::uint64_t dropped_duplicate_or_old{0};
   std::uint64_t buffered_out_of_order{0};
   std::uint64_t dropped_gap_too_large{0};

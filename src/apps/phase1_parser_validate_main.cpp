@@ -422,6 +422,7 @@ int main(int argc, char** argv) {
       }
       std::cout << "[phase2]\n";
       std::cout << "accepted=" << phase2.accepted << "\n";
+      std::cout << "dropped_publish_overflow=" << phase2.dropped_publish_overflow << "\n";
       std::cout << "dropped_duplicate_or_old=" << phase2.dropped_duplicate_or_old << "\n";
       std::cout << "buffered_out_of_order=" << phase2.buffered_out_of_order << "\n";
       std::cout << "dropped_gap_too_large=" << phase2.dropped_gap_too_large << "\n";

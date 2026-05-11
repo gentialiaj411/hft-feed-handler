@@ -45,10 +45,21 @@ void test_gap_too_large_drop() {
   assert(s.dropped_gap_too_large == 1);
 }
 
+void test_publish_overflow_counted() {
+  mf::phase2::Pipeline pipeline(/*gap_window=*/8, /*per_venue_capacity=*/1);
+  pipeline.on_event(make_event(mf::core::Venue::Nasdaq, 1, 1000));
+  pipeline.on_event(make_event(mf::core::Venue::Nasdaq, 2, 1001));
+  pipeline.finalize();
+  const auto& s = pipeline.stats();
+  assert(s.accepted == 1);
+  assert(s.dropped_publish_overflow == 1);
+}
+
 }  // namespace
 
 int main() {
   test_out_of_order_then_recovery_reinject();
   test_gap_too_large_drop();
+  test_publish_overflow_counted();
   return 0;
 }

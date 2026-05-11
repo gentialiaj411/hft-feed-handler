@@ -83,7 +83,9 @@ void Pipeline::process_event(const mf::core::BookEvent& ev) {
 void Pipeline::publish(const mf::core::BookEvent& ev) {
   if (merger_.push(ev)) {
     ++stats_.accepted;
+    return;
   }
+  ++stats_.dropped_publish_overflow;
 }
 
 }  // namespace mf::phase2

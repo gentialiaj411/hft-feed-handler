@@ -47,6 +47,7 @@
   - deterministic gap-buffer release path
   - `DeterministicMerger` (canonical publish order)
 - It reports `merged_crc32` and recovery/gap counters for deterministic framework bring-up.
+- It also reports `dropped_publish_overflow` so bounded queue-pressure drops are explicit (never silent).
 - Cboe is optional in this mode, preserving pluggability while licensing/data remains a separate validation track.
 - Deterministic merge ordering is covered by a dedicated unit-style CRC invariance test (`test_phase2_determinism_crc`) that compares multiple arrival permutations of the same logical event set.
 
