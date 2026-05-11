@@ -80,6 +80,9 @@
   - Build arbitration/recovery framework against NASDAQ + IEX interfaces.
   - Keep Cboe as pluggable path pending licensed sample data.
   - Phase 2 kickoff now includes a compiled sequence/gap tracker framework module with dedicated tests.
+- Current state update:
+  - Phase 2 framework is now implemented in-repo: sequence tracking, gap handling, recovery simulation, deterministic merge, JIT bridge sink, and benchmark harness.
+  - This does not remove the known external validation constraints: NASDAQ sample framing mismatch and Cboe licensed historical replay access.
 - Must stay explicit in README/interviews:
   - NYSE Pillar was swapped to IEX DEEP+ due to binary-data availability.
   - Cboe historical replay remains a licensing-gated validation item.
