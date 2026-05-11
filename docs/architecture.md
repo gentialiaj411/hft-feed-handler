@@ -27,12 +27,16 @@
 ## Phase 2 Framework Status
 - Added a venue-scoped sequence tracker module (`mf::phase2::SequenceTracker`) with bounded gap window logic.
 - Added multi-venue wrapper (`mf::phase2::MultiVenueSequenceTracker`) covering NASDAQ, IEX, and Cboe as independent sequence domains.
+- Added recovery abstraction interface (`mf::phase2::IRecoveryHandler`) and gap-aware sequencer (`mf::phase2::GapAwareSequencer`) to issue deterministic recovery requests for missing ranges.
+- Added deterministic merged publication primitive (`mf::phase2::DeterministicMerger`) with stable ordering by `(exchange_ts_ns, venue, sequence, raw_type)`.
 - Current behavior:
   - in-order packets advance expected sequence
   - duplicate/old packets are classified and ignored
   - out-of-order packets within window are buffered and released deterministically once gaps are filled
   - packets beyond window are reported as oversized gaps for recovery path handling
-- Recovery transport/retransmission interface and merged publication path are next Phase 2 items.
+- Remaining Phase 2 work:
+  - bind recovery requests to replay/retransmission simulation transport
+  - integrate merged output into canonical publication/CRC path
 
 ## Latency budget (laptop-bound target)
 - Parse/decode: 35-80 ns
