@@ -66,3 +66,19 @@
 - Each `BookEvent` carries both `exchange_ts_ns` and `ingest_ts_ns`.
 - Cboe PITCH uses fixed-length ASCII field parsing (including base36 IDs), not binary integer fields.
 - This repository does not include redistributed proprietary exchange payload files; only locally downloaded samples are used for validation.
+
+## Phase 1 Checkpoint
+- Validated now:
+  - IEX DEEP+ core parser subset (`a/M/R/L/T/S/E`) on real historical `pcap.gz` sample.
+  - IEX replay determinism across 100 runs (single CRC value).
+  - IEX replay throughput snapshot script and baseline numbers.
+  - Parser fixture tests for DEEP+ core message decode semantics.
+- Implemented but blocked on data/source compatibility:
+  - NASDAQ ITCH parser exists, but currently downloaded `tvagg.gz` sample does not match the expected replay framing/message taxonomy for full decode validation.
+  - Cboe parser exists, but historical replay is blocked by paid data licensing.
+- Safe to start in Phase 2 immediately:
+  - Build arbitration/recovery framework against NASDAQ + IEX interfaces.
+  - Keep Cboe as pluggable path pending licensed sample data.
+- Must stay explicit in README/interviews:
+  - NYSE Pillar was swapped to IEX DEEP+ due to binary-data availability.
+  - Cboe historical replay remains a licensing-gated validation item.
