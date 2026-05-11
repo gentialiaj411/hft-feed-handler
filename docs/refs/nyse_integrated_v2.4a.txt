@@ -1,0 +1,1115 @@
+ 
+ 
+ 
+ 
+PILLAR INTEGRATED FEED - CLIENT SPECIFICATION 
+ 
+NYSE INTEGRATED FEED 
+NYSE AMERICAN INTEGRATED FEED   
+NYSE ARCA INTEGRATED FEED 
+NYSE CHICAGO INTEGRATED FEED 
+NYSE NATIONAL INTEGRATED FEED 
+ 
+Version        Date 
+2.4a         March 4, 2022 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+ 
+© Copyright 2022 Intercontinental Exchange, Inc.  ALL RIGHTS RESERVED.  INTERCONTINENTAL EXCHANGE, 
+INC. AND ITS AFFILIATES WHICH INCLUDE THE NEW YORK STOCK EXCHANGE, (“ICE” AND “NYSE”) MAKE NO 
+WARRANTY WHATSOEVER AS TO THE PRODUCT DESCRIBED IN THESE MATERIALS EXPRESS OR IMPLIED, 
+AND THE PRODUCT IS PROVIDED ON AN “AS IS” BASIS. ICE AND NYSE EXPRESSLY DISCLAIM ANY IMPLIED 
+WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. NEITHER ICE, NYSE NOR 
+THEIR RESPECTIVE DIRECTORS, MANAGERS, OFFICERS, AFFILIATES, SUBSIDIARIES, SHAREHOLDERS, 
+EMPLOYEES OR AGENTS MAKE ANY WARRANTY WITH RESPECT TO, AND NO SUCH PARTY SHALL HAVE ANY 
+LIABILITY FOR (i) THE ACCURACY, TIMELINESS, COMPLETENESS, RELIABILITY, PERFORMANCE OR 
+CONTINUED AVAILABILITY OF PRODUCT, OR (ii) DELAYS, OMISSIONS OR INTERRUPTIONS THEREIN.  
+ICE/NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+Integrated Feed v2.4a 2 
+ 
+PREFACE 
+DOCUMENT HISTORY 
+VERSION 
+NO. 
+DATE CHANGE DESCRIPTION 
+2.2 12/01/2018 • Updates to Auctions and the Imbalances msg for NYSE under 
+Pillar. 
+• Renamed Closing Only Clearing Price to Auction Only Clearing 
+Price. 
+The 3 new trailing fields in the Imbalance message contain only 
+default values in non-NYSE markets. 
+2.2a 03/08/2019 
+ 
+• Updates to NYSE Imbalance start time 
+• Defaulted the Significant imbalance field in Msg Type 105  
+2.3 06/14/2019 Added support for  NYSE Chicago Integrated Feed - product ID, hours 
+of operation, etc… (Go Live 11/2019) 
+2.3a 10/25/2019 Additional clarifications/cleanup post Tape A migration to Pillar. 
+• Corrrected 4pm security status message for NYSE. 
+• Clarified FirmID field in the AddOrder message (Msg Type 100) 
+• Clarified Position Change field in the Modify (Msg Type 101) 
+• Clarified DBExecID field in Execution Message (Msg Type 103). 
+• Removed implementation note on RPI message (Msg Type 114).  
+• Clarified field definitions for CBCP, AICP on Imbalance Msg (Msg 
+Type 105) 
+• Corrected Core opening time in Appendix A. 
+2.3b 01/14/2021 Updated that the Exchange would disseminate Auction Imbalance 
+Information if a security is an IPO or Direct Listing. 
+2.3c 07/30/2021 Updated the MOC LOC Cutoff timer to 10 minutes in Section 14.1 
+2.3d 08/12/2021 Updated the Arca - Order Entry Start Time to 2:30am in Section 1.3 
+2.4 12/17/2021 Addition of Trade Conditions 1-4 on msgtype 103 and msgtype 110, 
+in place of DBEXECID - all markets in Q1 2022 
+2.4a 03/04/2022 Updated ParitySplits fieldname to be ‘Reserved’ and for future use.  
+Msgtypes 100, 101, 102, 103, 104 and 106. 
+Updated IP address sheet link in Reference Materials. 
+ICE/NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+Integrated Feed v2.4a 3 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+REFERENCE MATERIAL 
+The following lists the associated documents, which either should be read in conjunction with this 
+document or which provide other relevant information for the user: 
+▪ Common Client Specification 
+▪ ICE Global Network 
+▪ NYSE Symbology 
+▪ IP Addresses 
+ 
+ 
+CONTACT INFORMATION 
+Service Desk 
+▪ Telephone: +1 212 896-2830 
+▪ Email: support@nyse.com 
+ 
+FURTHER INFORMATION 
+For additional information about the product, visit the Integrated Feed Product Page. 
+For updated capacity figures, visit the Market Data capacity page. 
+ 
+  
+ICE/NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+Integrated Feed v2.4a 4 
+ 
+ 
+TABLE OF CONTENTS 
+PREFACE ................................ ................................ ................................ ................................ ................ 2 
+Document History ................................ ................................ ................................ ................................  2 
+Reference Material ................................ ................................ ................................ ...............................  3 
+Contact Information ................................ ................................ ................................ .............................  3 
+Further Information ................................ ................................ ................................ ..............................  3 
+1. INTEGRATED FEED ................................ ................................ ................................ ....................... 5 
+1.1 Overview ................................ ................................ ................................ ................................ .... 5 
+1.2 Control Message Types Used in the feed ................................ ................................ ...................... 5 
+1.3 Message Publication Times ................................ ................................ ................................ ......... 6 
+1.3.1 Integrated Feed Message Types and Hours ....................................................................................... 6 
+1.3.2 Control Message Types: ..................................................................................................................... 7 
+2. ADD ORDER MESSAGE – MSG TYPE 100 ................................ ................................ ....................... 8 
+3. MODIFY ORDER MESSAGE – MSG TYPE 101 ................................ ................................ ................. 9 
+4. REPLACE ORDER MESSAGE – MSG TYPE 104 ................................ ................................ ............... 10 
+5. DELETE ORDER MESSAGE – MSG TYPE 102 ................................ ................................ ................. 11 
+6. ORDER EXECUTION MESSAGE – MSG TYPE 103 ................................ ................................ .......... 12 
+7. NON-DISPLAYED TRADE MESSAGE – MSG TYPE 110 ................................ ................................ ... 14 
+8. TRADE CANCEL MESSAGE – MSG TYPE 112 ................................ ................................ ................. 16 
+9. RETAIL PRICE IMPROVEMENT MESSAGE – MSG TYPE 114 ................................ ...........................  17 
+10. CROSS TRADE MESSAGE – MSG TYPE 111 ................................ ................................ .................. 18 
+11. CROSS CORRECTION MESSAGE – MSG TYPE 113 ................................ ................................ ......... 19 
+12. ADD ORDER REFRESH MESSAGE – MSG TYPE 106 ................................ ................................ ....... 20 
+13. IMBALANCE MESSAGE – MSG TYPE 105 ................................ ................................ ..................... 22 
+14. STOCK SUMMARY MESSAGE – MSG TYPE 223 ................................ ................................ ............ 26 
+APPENDIX A: INFORMATION ON AUCTIONS ................................ ................................ ..........................  27 
+14.1 NYSE Auctions ................................ ................................ ................................ ...........................  27 
+14.2 NYSE Arca and NYSE American Auctions ................................ ................................ .................... 28 
+14.3 Imbalance Message Publication Times ................................ ................................ ....................... 30 
+APPENDIX B: PRODUCT IDS ................................ ................................ ................................ ................... 31 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 5 
+ 
+1. Integrated Feed  
+1.1 OVERVIEW 
+The Integrated Feed provides real-time market data in a unified view of events, in sequence, as they appear 
+on the Pillar matching engines. The Integrated Feed includes depth of book order data, last sale data, and  
+opening and closing imbalance data. The Integrated Feed also includes security status updates (e.g., trade 
+corrections and trading halts) and stock summary messages. 
+All message types defined in this document appear only in the main publication channels, except:  
+• The Imbalance and Add Order Refresh message types also appear in the Refresh channels.  
+• The Stock Summary message appears only in a dedicated Stock Summary channel. 
+1.2 CONTROL MESSAGE TYPES USED IN THE FEED 
+See the Common Client Specification for details on all control messages. 
+MSG 
+TYPE DESCRIPTION PUBLISHER 
+CHANNELS 
+REQUEST 
+CHANNEL 
+REFRESH 
+CHANNELS 
+1 Sequence Number Reset x  x 
+2 Time Reference x  x 
+3 Symbol Index Mapping x  x 
+10 Retransmission Request   client  
+11 Request Response   server  
+12 Heartbeat Response   client  
+13 Symbol Index Mapping Request   client  
+15 Refresh Request   client  
+31 Message Unavailable  server  
+32 Symbol Clear x   
+34 Security Status Message x  x 
+35 Refresh Header Message   x 
+  
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 6 
+ 
+1.3 MESSAGE PUBLICATION TIMES 
+Scheduled trading session times on normal and early-close days for all NYSE markets can be found here. 
+  
+1.3.1 Integrated Feed Message Types and Hours 
+ 
+Hours are for guidelines use only (e.g. stop publication times for NYSE Tape A are not exactly at 4:00pm 
+EST, rather when the stock is closed). 
+MSG 
+TYPE DESCRIPTION HOURS  
+100 Add Order Message NYSE Arca 
+2:30am – 8:00pm 
+NYSE American 
+6:30am – 8:00pm  
+NYSE Chicago 
+6:30am – 8:00pm  
+NYSE National 
+6:30am – 8:00pm 
+NYSE Tape A, B & C 
+6:30am – 4:00pm 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+101 Modify Order Message 
+104 Replace Order Message 
+102 Delete Order Message 
+112 Trade Cancel Message 
+111 Cross Trade Message 
+113 Cross Correction Message 
+114 Retail Price Improvement Msg 
+106 Add Order Refresh Message 
+105 Imbalance Message See Appendix A  
+103 Order Execution Message NYSE Arca 
+4:00am – 8:00pm 
+NYSE American 
+7:00am – 8:00pm 
+NYSE National 
+7:00am – 8:00pm 
+NYSE Tape A 
+9:30am – 4:00pm 
+NYSE Tapes B&C 
+7:00am – 4:00pm 
+NYSE Chicago 
+7:00am – 8:00pm 
+110 Non-Displayed Trade Message 
+223 Stock Summary Message 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 7 
+ 
+ 
+ 
+1.3.2 Control Message Types:  
+ 
+Refer to the Common Client Specification for details 
+MSG 
+TYPE DESCRIPTION HOURS  
+1 Sequence Number Reset 
+12:15am – 8:00pm 
+ 
+2 Time Reference 
+3 Symbol Index Mapping 
+32 Symbol Clear 
+34 Security Status Message NYSE Arca 
+12:15am – 8:00pm 
+NYSE American 
+12:15am – 8:00pm 
+NYSE National 
+12:15am – 8:00pm 
+ 
+NYSE Tape A 
+12:15am – 4:00pm 
+NYSE Tapes B&C 
+12:15am – 4:00pm 
+NYSE Chicago 
+12:15am – 8:00pm 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 8 
+ 
+2. Add Order Message – Msg Type 100 
+An Add Order message is published when a new visible order has been received and added to the book.  
+The Order ID is assigned by the matching engine and is good for current day only. If an order, which was 
+previously displayed, gets routed to an away market and upon returning unexecuted there is no residual of 
+this order, another AddOrder message will be published with the same order ID.   
+See the Common Client Specification for details on Time Reference and Symbol Index Mapping messages, 
+and Order ID and Price field formats. 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 39 bytes 
+Msg Type 2 2 Binary The type of message: 
+100 – Add Order Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time Reference 
+second (since Jan 1, 1970 00:00:00 UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in the set 
+of all messages for this symbol 
+OrderID 16 8 Binary The unique ID assigned by the matching engine 
+to this order .  Can be used to match this 
+message to the gateway Order Report. 
+Price 24 4 Binary The order price. Use with the Price Scale from 
+the symbol-mapping index. 
+Volume 28 4 Binary The order quantity in shares  
+Side 32 1 ASCII The side of the order (Buy/Sell). Valid values: 
+▪ ‘B’ – Buy 
+▪ ‘S’ – Sell 
+FirmID 33 5 ASCII The market participant’s firm ID.   
+Blank-filled if a firm ID was not specified and/or 
+if the order is not marked as Attributed. 
+Reserved 1 38 1 Binary Defaulted to 0.  Future use by NYSE only. 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 9 
+ 
+3. Modify Order Message – Msg Type 101 
+A Modify Order message is sent when the price or volume of an order is changed due to an event other 
+than a cancel-replace, or full or partial execution.  The content of the price and volume fields represent the 
+new values after modification.  
+See the Common Client Specification for details on Time Reference and Symbol Index Mapping messages, 
+and Order ID and Price field formats. 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 35 bytes 
+Msg Type 2 2 Binary The type of message: 
+101 – Modify Order Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time 
+Reference second (since Jan 1, 1970 00:00:00 
+UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in the 
+set of all messages for this symbol 
+OrderID 16 8 Binary The unique ID assigned by the matching 
+engine to the order to be modified 
+Price 24 4 Binary The new order price.  Use the Price scale 
+from the symbol mapping index. 
+Volume 28 4 Binary The new order quantity in shares. 
+PositionChange 32 1 Binary Currently defaulted to 0. 
+• 0 –  Kept position in book 
+• 1 – Lost position in book  
+If the price of the Modify Order didn’t 
+change, order always keeps the position in 
+the book.  
+If the price of the Modify Order message 
+changed, the order always loses position. 
+Reserved 1 33 1 Binary Defaulted to 0.  Future use by NYSE only. 
+Reserved 2 34 1 Binary Defaulted to 0.  Future use by NYSE only. 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 10 
+ 
+4. Replace Order Message – Msg Type 104 
+A Replace Order message is published when a cancel/replace order is received and executed.  The sitting 
+order is replaced with a new one containing the same symbol, side and attribution, a new Order ID, and the 
+price and size specified.  The sitting order must be removed from the book and replaced with the new 
+order.  
+See the Common Client Specification for details on Time Reference and Symbol Index Mapping messages, 
+and Order ID and Price field formats. 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 42 bytes 
+Msg Type 2 2 Binary The type of message: 
+104 – Replace Order Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time 
+Reference second (since Jan 1, 1970 00:00:00 
+UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in the 
+set of all messages for this symbol 
+OrderID 16 8 Binary The unique ID assigned by the matching 
+engine to the existing order to be replaced 
+NewOrderID 24 8 Binary The new Order ID of the replacement order  
+Price 32 4 Binary The new order price.  Use the Price scale 
+from the symbol mapping index. 
+Volume 36 4 Binary The new order quantity in shares. 
+Reserved 1 40 1 Binary Defaulted to 0.  Future use by NYSE only. 
+Reserved 2 41 1 Binary Defaulted to 0.  Future use by NYSE only. 
+ 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 11 
+ 
+5. Delete Order Message – Msg Type 102 
+A Delete Order message is published when an order is taken off of the book for any reason except for full 
+execution, in which case an Order Execution message is sent. If the order is replaced, a delete order 
+message will not be published, rather a Replace Order message. 
+Immediately before a trading session changes (eg: Early session to Core session), all orders that were 
+submitted for the current or current+previous sessions are explicitly deleted with a Delete Order message. 
+Please note that when trading in a security is closed for the day, a Security Status ‘X’ is sent and unexecuted 
+orders are cancelled, but explicit Delete Order Messages are not sent. 
+See the Common Client Specification for details on Time Reference and Symbol Index Mapping messages, 
+and Order ID field format. 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 25 bytes 
+Msg Type 2 2 Binary The type of message: 
+102 –  Delete Order Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time Reference 
+second (since Jan 1, 1970 00:00:00 UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in the set 
+of all messages for this symbol 
+OrderID 16 8 Binary The unique ID assigned by the matching engine 
+to the existing order to be deleted 
+Reserved 1 24 1 Binary Defaulted to 0.  Future use by NYSE only. 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 12 
+ 
+6. Order Execution Message – Msg Type 103 
+An Order Execution message is sent when an order is partially or fully executed.  If the Price field is 
+different from the price of the order, any remaining shares keep their original price.  If the Volume field 
+equals the number of shares previously remaining in the order, then the order has been fully executed and 
+should be removed from the book.   If the order has been partially executed, further Order Execution 
+messages for this Order ID may be published. 
+See the Common Client Specification for details on Time Reference and Symbol Index Mapping messages, 
+and Order ID, Trade ID and Price field formats.  
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 42 bytes 
+Msg Type 2 2 Binary The type of message: 
+103 – Order Execution Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time 
+Reference second (since Jan 1, 1970 
+00:00:00 UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index 
+msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in 
+the set of all messages for this symbol 
+OrderID 16 8 Binary The unique ID assigned by the matching 
+engine to the partially or fully executed 
+order . 
+TradeID 24 4 Binary Unique ID assigned by the matching engine 
+to this execution.  Used by any subsequent 
+Trade Cancel message to identify this 
+execution.  Can be matched to the Deal ID 
+field in the gateway Execution Report. 
+Price 28 4 Binary The execution price of this trade.  Use the 
+Price Scale from the symbol mapping index. 
+Volume 32 4 Binary The executed quantity in shares. 
+PrintableFlag 36 1 Binary • 0 = Not Printed to the SIP 
+• 1 = Printed to the SIP 
+All individual executions (Execution messages and 
+Non-Displayed Trade messages) will have Printable 
+Flag set to 0 for auction trades, so that the auction 
+volume is not double counted. 
+Reserved 1 37 1 Binary Defaulted to 0.  Future use by NYSE only. 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 13 
+ 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+ 
+TradeCond1 38 1 ASCII Settlement related conditions. Valid values: 
+• @ – Regular Sale  
+• C – Cash (Chicago only) 
+• N – Next Day Trade (Chicago only)  
+TradeCond2 39 1 ASCII The reason for Trade Through Exemptions. Valid values: 
+• ‘ ’ – N/A (0x20)  
+• F – Intermarket Sweep Order 
+• O – Market Center Opening Trade (Arca, American 
+and NYSE only) 
+• 5 - Reopening Trade (Arca, American and NYSE 
+only) 
+• 6 – Market Center Closing Trade (Arca, American 
+and NYSE only) 
+• 7 – Qualified Contingent Trade (Chicago only)  
+TradeCond3 40 1 ASCII Extended hours/sequencing related conditions. Valid 
+values: 
+•  ‘ ’ – (space, or 0x20) N/A  
+• T – Extended Hours Trade 
+• U – Extended Hours Sold (Out of Sequence) 
+• Z – Sold  
+TradeCond4 41 1 ASCII SRO Required Detail. Valid values: 
+•  ‘ ‘ – (space, or 0x20) N/A 
+• I – Odd Lot Trade 
+• V – Contingent Trade (Chicago only) 
+  
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 14 
+ 
+7. Non-Displayed Trade Message – Msg Type 110  
+An Non Displayed Trade message is sent as a result of a match between two non-displayed orders. 
+Customers who are only interested in building a book of displayed orders may safely ignore Non-Displayed 
+Trade messages.  Customers who are creating statistics or displays requiring the full record of trades in this 
+market will need to process Non-Displayed Trade messages. 
+If a MOC order executes against MOC or LOC, then a Non-Displayed Trade message is published. If a MOC 
+order was executed against a displayed order, only an ‘Order Execution’ message for the displayed order 
+will be published. 
+See the Common Client Specification for details on Time Reference and Symbol Index Mapping messages, 
+and Order ID, Trade ID, and Price field formats. 
+TradeCond1 29 1 ASCII Settlement related conditions. Valid values: 
+• @ – Regular Sale  
+• C – Cash (Chicago only) 
+• N – Next Day Trade (Chicago only) 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message:  33 bytes 
+Msg Type 2 2 Binary The type of message: 
+ 110 –  Non-Displayed Trade Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time Reference 
+second (since Jan 1, 1970 00:00:00 UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in the set of 
+all messages for this symbol 
+TradeID 16 4 Binary Unique ID assigned by the matching engine to this 
+trade event.  Used by any subsequent Trade Cancel 
+message to identify this execution.  Can be matched 
+to the Deal ID field in the gateway Execution Report. 
+Price 20 4 Binary The execution price of the trade. Use the Price scale 
+from the symbol mapping index. 
+Volume 24 4 Binary Volume of the trade in shares 
+PrintableFlag 28 1 Binary • 0 = Not Printed to the SIP 
+• 1 = Printed to the SIP 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 15 
+ 
+TradeCond2 30 1 ASCII The reason for Trade Through Exemptions. Valid values: 
+• ‘ ’ – N/A (0x20)  
+• F – Intermarket Sweep Order 
+• O – Market Center Opening Trade (Arca, American 
+and NYSE only) 
+• 5 - Reopening Trade (Arca, American and NYSE 
+only) 
+• 6 – Market Center Closing Trade (Arca, American 
+and NYSE only) 
+• 7 – Qualified Contingent Trade (Chicago only) 
+TradeCond3 31 1 ASCII Extended hours/sequencing related conditions. Valid 
+values: 
+•  ‘ ’ – (space, or 0x20) N/A  
+• T – Extended Hours Trade 
+• U – Extended Hours Sold (Out of Sequence) 
+• Z – Sold 
+TradeCond4 32 1 ASCII SRO Required Detail. Valid values: 
+•  ‘ ‘ – (space, or 0x20) N/A 
+• I – Odd Lot Trade 
+• V – Contingent Trade (Chicago only) 
+ 
+ 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 16 
+ 
+8. Trade Cancel Message – Msg Type 112  
+In the event that an earlier trade has been reported in error, a Trade Cancel message is sent.  This occurs 
+whether the initial report was an Order Execution or a Non-Displayed Trade message. 
+Note that since Trade Cancel messages only affect trades that occurred in the past, customers who are only 
+interested in building a book may safely ignore them. 
+Customers who are building a complete record of today’s trades should remove the cancelled trade from 
+their records and subtract its volume from any statistics. 
+ 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 20 bytes 
+Msg Type 2 2 Binary The type of message: 
+ 112 –  Trade Cancel Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time Reference 
+second (since Jan 1, 1970 00:00:00 UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in the set 
+of all messages for this symbol  
+TradeID 16 4 Binary The TradeID of the original Trade or Execution 
+message to be cancelled. 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 17 
+ 
+9. Retail Price Improvement Message – Msg Type 114 
+Published when RPI interest (hidden retail price improvement interest) is added or removed between the 
+best bid and best offer price.  When all RPI interest for this security is removed from the book, An RPI 
+message with RPIIndicator = ‘ ‘ (space character) is published. 
+ 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message:  17 bytes 
+Msg Type 2 2 Binary The type of message: 
+114 –  Retail Price Improvement Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time Reference 
+second (since Jan 1, 1970 00:00:00 UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in the set 
+of all messages for this symbol 
+RPIIndicator 16 1 ASCII The side(s) where Retail Price Improvement 
+orders (RPI orders) exist. Valid values correspond 
+to CQS values:  
+• ‘ ’ – Space means no retail interest 
+(default)  
+• A – Retail interest on the bid side 
+• B – Retail interest on the offer side  
+• C – Retail interest on the bid and offer 
+sides. 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 18 
+ 
+10. Cross Trade Message – Msg Type 111  
+A Cross Trade message is published on completion of a crossing auction, and shows the bulk volume that 
+traded in the auction.  The Reason Code field indicates the auction type.  Additionally, a non-printable 
+Order Execution or Non-Displayed Trade message will be published for each order that traded. 
+ 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 29 bytes 
+Msg Type 2 2 Binary The type of message: 
+ 111 –  Cross Trade Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time Reference 
+second (since Jan 1, 1970 00:00:00 UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in the set 
+of all messages for this symbol 
+CrossID 16 4 Binary Unique identifier for this Cross Trade.  Used in 
+Cross Correction message to identify the Cross 
+Trade to correct. 
+Price 20 4 Binary The execution price. Use the Price scale from the 
+symbol mapping index. 
+Volume 24 4 Binary Volume executed in shares 
+CrossType 28 1 ASCII Reason for the crossing auction. Valid values: 
+• E – Market Center Early Opening 
+Auction 
+• O – Market Center Opening  Auction 
+• 5 – Market Center Reopening Auction 
+• 6 – Market Center Closing Auction 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 19 
+ 
+11. Cross Correction Message – Msg Type 113  
+In the event that an earlier Cross Trade has been reported in error, a Cross Correction message is sent. 
+Note that since Cross Correction messages only affect cross auctions that occurred in the past, customers 
+who are only interested in building a book may safely ignore them. 
+Customers who are building a complete record of current day volume should remove the previously 
+reported volume from their statistics and add the volume of the Cross Correction to them. 
+ 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 24 bytes 
+Msg Type 2 2 Binary The type of message: 
+ 113 –  Cross Correction Message 
+SourceTimeNS 4 4 Binary The nanosecond offset from the Time Reference 
+second (since Jan 1, 1970 00:00:00 UTC) 
+SymbolIndex 8 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 12 4 Binary The sequence number of this message in the set 
+of all messages for this symbol 
+CrossID 16 4 Binary The CrossID of the original Cross Trade message 
+to be corrected.   
+Volume 20 4 Binary The corrected volume of Cross Trade message. 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 20 
+ 
+12. Add Order Refresh Message – Msg Type 106  
+The Add Order Refresh message can be sent in either of two contexts: 
+1) If a client sends a Refresh Request to the Pillar Request Server, an Add Order Refresh message is 
+sent over the Refresh channels as part of the refresh response for every order currently sitting on 
+the book. 
+2) If NYSE Operations refreshes a symbol, a Symbol Clear message is published, followed by a full 
+refresh. The refresh includes an Add Order Refresh message for every order currently sitting on the 
+book of the symbol. 
+See the Common Client Specification for details on Time Reference and Symbol Index Mapping messages, 
+and Order ID and Price field formats. 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 
+43 bytes 
+Msg Type 2 2 Binary The type of 
+message: 
+106 – Add Order 
+Refresh Message 
+SourceTime 4 4 Binary The time when this 
+msg was generated 
+in the order book, in 
+seconds since Jan 1, 
+1970 00:00:00 UTC. 
+SourceTimeNS 8 4 Binary The nanosecond 
+offset from the 
+SourceTime 
+SymbolIndex 12 4 Binary The ID of the symbol 
+in the Symbol Index 
+msg 
+SymbolSeqNum 16 4 Binary The sequence 
+number of this 
+message in the set 
+of all messages for 
+this symbol 
+OrderID 20 8 Binary The unique ID 
+assigned by the 
+matching engine to 
+this order 
+Price 28 4 Binary The order price.  
+Use the Price scale 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 21 
+ 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+from the symbol-
+mapping index. 
+Volume 32 4 Binary The order quantity 
+in shares. 
+Side 36 1 ASCII The side of the 
+order (Buy/sell). 
+Valid values: 
+• ‘B’ – Buy 
+• ‘S’ – Sell 
+FirmID 37 5 ASCII The participant’s 
+firm ID, or blanks if 
+firm ID was not 
+specified OR if the 
+orer is not marked 
+as attributed. 
+Reserved 1 42 1 Binary For all markets, 
+defaulted to 0. 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 22 
+ 
+13.  Imbalance Message – Msg Type 105 
+Imbalance messages are published once a second during auctions to update price and volume information. 
+If there is no change to the calculated fields, no message will be generated.  See  Information on Auctions 
+for details on the auction process in the NYSE, Arca and American markets.  
+See the Common Client Specification for details on Symbol Index Mapping messages and Price field format. 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 23 
+ 
+FIELD NAME OFFSET SIZE FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 73 bytes 
+Msg Type 2 2 Binary This field identifies the type of message. 
+105 – Imbalance Message 
+SourceTime 4 4 Binary The time when this msg was generated in the 
+order book, in secs since 1/1/1970 00:00:00 UTC 
+SourceTimeNS 8 4 Binary The nanosecond offset from the Source Time 
+SymbolIndex 12 4 Binary The ID of the symbol in the Symbol Index msg 
+SymbolSeqNum 16 4 Binary The sequence number of this message in the set 
+of all messages for this symbol 
+ReferencePrice 20 4 Binary The Reference Price is the notional likely price of 
+the auction trade.   See Information on Auctions 
+for details. 
+For non-NYSE markets, the Reference Price is 
+used to calculate the Indicative Match Price.  
+PairedQty 24 4 Binary For non-NYSE markets, the number of shares 
+paired off at the Indicative Match Price.   
+For NYSE, the number of shares paired off at the 
+Reference Price. 
+TotalImbalanceQty 28 4 Binary For non-NYSE markets, the total imbalance 
+quantity at the Indicative Match Price.  
+For NYSE,  the total imbalance quantity at the 
+Reference Price.  
+When Auction Type=P (NYSE only), this field will 
+be set to the Extreme Order Imbalance quantity. 
+MarketImbalanceQty 32 4 Binary The total market order imbalance quantity at 
+the Indicative Match Price.   
+For NYSE, unused and defaulted to 0. 
+AuctionTime 36 2 Binary Projected Auction Time (hhmm) 
+AuctionType 38 1 ASCII 
+ 
+▪ O – Early Opening Auction (non-NYSE only) 
+▪ M – Core Opening Auction  
+▪ H – Reopening Auction (Halt resume) 
+▪ C – Closing Auction  
+▪ P – Extreme Closing Imbalance (NYSE only) 
+▪ R – Regulatory Closing Imbalance (NYSE 
+only) 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 24 
+ 
+ImbalanceSide 39 1 ASCII 
+ 
+The side of the TotalImbalanceQty 
+▪ B – Buy side 
+▪ S – Sell side 
+▪ Space – No imbalance 
+ContinuousBook 
+ClearingPrice 
+40 4 Binary For non-NYSE markets, the price at which all 
+interest on the book can trade, including auction 
+and imbalance offset interest, and disregarding 
+auction collars.   
+For NYSE, the price closest to the reference price 
+where the imbalance is 0. For regulatory 
+imbalances, or if a continuous book clearing 
+price is not reached, this field is defaulted to 0. 
+AuctionInterest 
+ClearingPrice 
+44 4 Binary For non-NYSE markets, the price at which all 
+eligible auction-only interest would trade, 
+subject to auction collars.   
+For the NYSE closing auction only, the price 
+closest to the reference price where the 
+imbalance of closing-only interest is 0.  If a 
+closing-only clearing price is not reached, this 
+field is defaulted to 0. 
+SSRFilingPrice 48 4 Binary For non-NYSE markets, not supported and 
+defaulted to 0. 
+For NYSE non-Regulatory imbalances, if a Sell 
+Short Restriction is in effect, the price at which 
+Sell Short interest will be filed. 
+IndicativeMatchPrice 52 4 Binary For non-NYSE markets, the price at which the 
+highest number of shares would trade, subject 
+to auction collars. It includes the non-displayed 
+quantity of Reserve Orders. See Information on 
+Auctions for details. 
+For NYSE, set to 0. 
+UpperCollar 
+ 
+56 4 Binary If the IndicativeMatchPrice is not strictly 
+between the UpperCollar and the LowerCollar, 
+special auction rules apply.  See Rule 7.35 for 
+details 
+For NYSE, set to 0 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 25 
+ 
+LowerCollar 
+ 
+60 4 Binary If the IndicativeMatchPrice is not strictly 
+between the UpperCollar and the LowerCollar, 
+special auction rules apply.  See Rule 7.35 for 
+details. 
+For NYSE, set to 0 
+AuctionStatus 
+ 
+64 1 Binary Indicates whether the auction will run 
+0 - Will run as always for Open and Close 
+1 - Will run, interest exists inside or at the collars 
+or is fully paired off 
+2 – Will not run because there is an imbalance  
+through the collars 
+3 – Will not run, will transition to the Closing 
+Auction instead 
+FreezeStatus 
+ 
+65 1 Binary Freeze status is the Imbalance Freeze status - 
+MOC/LOC orders are accepted on the side 
+opposite to the Reg imbalance. 
+0 - Imbalance freeze not in effect 
+1 - Imbalance freeze is in effect 
+ 
+NYSE market has an imbalance freeze for the 
+closing. Arca market has imbalance freeze for 
+opening and re-opening. 
+NumExtensions 
+ 
+66 1 Binary Number of times the halt period has been 
+extended 
+For NYSE, set to 0 
+Unpaired Qty 67 4 Binary For NYSE only, during the Closing Auction, the 
+number of unpaired shares priced at or better 
+than the Reference Price.  
+For non-NYSE markets, 0. 
+Unpaired Side 71 1 ASCII For NYSE only, the side of the Unpaired Qty 
+▪ B - buy side 
+▪ S - sell side 
+▪ Space  - not applicable 
+Significant Imbalance 72 1 ASCII ▪ Space - not significant, or not applicable 
+(default till a future implementation date ) 
+▪ Y - the current Imbalance is significant 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 26 
+ 
+14. Stock Summary Message – Msg Type 223 
+A Stock Summary message per symbol is sent every 60 seconds, on a separate Stock Summary channel from 
+the main feed.   
+The message is sent regardless of whether there has been a change to the symbol in the last 60 seconds or 
+not. 
+See the Common Client Specification for details on the Price field format. 
+FIELD NAME OFFSET SIZE 
+(BYTES) FORMAT DESCRIPTION 
+Msg Size 0 2 Binary Size of the message: 36 bytes 
+Msg Type 2 2 Binary The type of message: 
+ 223 –  Stock Summary Message 
+SourceTime 4 4 Binary The time when this msg was generated in the order 
+book, in seconds since Jan 1, 1970 00:00:00 UTC. 
+SourceTimeNS 8 4 Binary The nanosecond offset from the SourceTime  
+SymbolIndex 12 4 Binary The ID of the symbol in the Symbol Index msg 
+HighPrice 16 4 Binary The exchange high price of this stock for the day. 
+Use the Price Scale in the symbol index msg. 
+LowPrice 20 4 Binary The exchange Low price of this stock for the day. 
+Use the Price Scale in the symbol index msg. 
+Open 24 4 Binary The exchange Opening price of this stock for the 
+day.  Use the Price Scale in the symbol index msg. 
+Close 28 4 Binary The exchange Closing price of this stock for the day.  
+Use the Price Scale in the symbol index msg. 
+TotalVolume 32 4 Binary The exchange cumulative volume for the stock 
+throughout the day. 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 27 
+ 
+APPENDIX A: Information on Auctions 
+14.1 NYSE AUCTIONS 
+The NYSE market conducts auctions for NYSE-listed (Tape A) symbols only.   
+As a part of the auction process, Imbalance messages are published every second if there is any change 
+from the previous second. 
+Note: During an auction, in calculating the imbalance at a price point on the book, NYSE considers the 
+following to be an imbalance: 
+• market orders 
+• interest whose price is better than the book price point 
+ 
+AUCTION  TYPE DESCRIPTION 
+Opening Auction 
+(M)  
+and  
+Re-Opening Auction 
+(H)  
+Interest Included 
+▪ All electronic interest eligible to trade in the opening auction 
+▪ DMM interest as needed to offset the imbalance 
+Order Cancellation 
+▪ Orders can be cancelled at any time up to the conclusion of the auction 
+Reference Price Calculation 
+The Reference Price is  
+▪ The consolidated last sale* if no Mandatory Indication has been 
+published 
+▪ The consolidated last sale* if it is within the indication range 
+▪ The indication low price if it is higher than the consolidated last sale* 
+▪ The indication high price it is lower than the consolidated last sale* 
+* If there’s no consolidated last sale price, the previous close price is used 
+Closing Auction (C) Interest Included 
+▪ For Paired Quantity, Unpaired Quantity, and Total Imbalance Quantity:  
+o MOC and LOC orders 
+o Imbalance offset orders 
+o Closing D orders 
+▪ For Continuous Book Clearing Price: 
+o All electronic interest eligible to trade in the closing auction  
+o DMM interest as needed to offset the imbalance 
+ 
+▪ For Auction Interest Clearing Price: 
+o MOC and LOC orders 
+o Imbalance offset orders 
+Order Cancellation 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 28 
+ 
+AUCTION  TYPE DESCRIPTION 
+▪ Orders can be cancelled any time during the auction period, except for 
+MOC, LOC and Imbalance offset orders, which can be cancelled only up 
+to 10 minutes before the scheduled closing time.  
+Reference Price Calculation 
+The Reference Price is 
+▪ The NYSE last sale if it is at or within the NYSE best quote 
+▪ The NYSE best bid if the NYSE best bid is higher than the NYSE last sale 
+▪ The NYSE best offer if the NYSE best offer is lower than the NYSE last sale 
+Regulatory Closing 
+Auction (R) 
+Interest Included 
+▪ MOC and LOC orders 
+Reference Price Calculation 
+▪ The Reference Price is the NYSE last sale* 
+* If there’s no NYSE last sale price, the NYSE previous close price is used 
+Extreme Imbalance 
+Closing Auction (P) 
+Interest Included 
+▪ All electronic interest eligible to trade in the closing auction 
+Reference Price Calculation 
+▪ The Reference Price is the NYSE last sale* 
+* If there’s no NYSE last sale price, the NYSE previous close price is used 
+ 
+14.2 NYSE ARCA AND NYSE AMERICAN AUCTIONS 
+Three single-price auctions are conducted during the day: the Early Opening Auction, the Core Opening 
+Auction and the Closing Auction.  As a part of the auction process, Imbalance messages are published every 
+second if there is any change from the previous second. 
+This description covers normal cases.  For full detail on exception cases, see Rule 7.35. 
+Indicative Match Price Details 
+▪ The Indicative Match Price is the price that maximizes executable volume of auction-eligible shares, 
+subject to Auction Collars.  
+▪ It includes the non-displayed quantity of Reserve Orders.   
+▪ If two or more prices maximize executable volume equally, in an effort to maintain continuity, the 
+Indicative Match Price is whichever price is closest to the Reference Price. 
+▪ The final auction execution price is the Indicative Match Price at auction time. 
+Note: During an auction, in calculating the imbalance at a price point on the book, NYSE Arca and American 
+consider the following to be an imbalance: 
+▪ Market orders 
+▪ Any interest whose price is at or better than the book price point 
+Imbalance Calculation 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 29 
+ 
+AUCTION TYPE DESCRIPTION 
+Early Opening 
+Auction (O) 
+Interest Included 
+1. Limit Orders designated for the Early Trading Session.  
+2. During the last minute before the Early Opening Auction time, the non-
+displayed quantity of Reserve Orders designated for the Early Open Auction is 
+included in the Matched Volume and Total Imbalance Volume. 
+Order Cancellation 
+Orders can be cancelled at any time up to the conclusion of  the auction. 
+Reference Price  
+▪ The Reference Price is normally the listing market’s previous Official Closing 
+Price. See Rule 7.35 for full detail. 
+Unexecuted session 1 eligible orders become eligible for the Early Session 
+immediately upon conclusion of the Early Opening Auction. 
+Core Opening 
+Auction (M) 
+ 
+and  
+ 
+Re-Opening 
+Auction (H) 
+Interest Included 
+1. Limit, Market, MOO, LOO and Primary Peg orders  
+2. During the last 5 seconds before the Core Opening Auction time, the non-
+displayed quantity of Reserve Orders is included in the Matched Volume and 
+Total Imbalance Volume.  
+Order Cancellation 
+Orders can be cancelled any time during the auction, except for MOO and LOO 
+orders which can be cancelled only up to 1 minute before the conclusion of  the 
+auction.   
+Reference Price  
+The Reference Price is normally the midpoint of the NBBO.  See Rule 7.35 for full 
+detail. 
+Closing Auction (C) Interest Included 
+1. Limit, Market, MOC, LOC  and Primary Peg orders 
+2. During the last minute before the Closing Auction time, the non-displayed 
+quantity of Reserve Orders is included in the Matched Volume and Total 
+Imbalance Volume. 
+Reference Price  
+▪ The Reference Price is normally the Consolidated Tape last sale. 
+If the price closest to the Reference Price would trade through the exchange book, 
+the indicative match price will be the best price available where no trade through 
+occurs.  See Rule 7.35 for full detail. 
+ 
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 30 
+ 
+14.3 IMBALANCE MESSAGE PUBLICATION TIMES 
+ 
+For all markets, the initial publication of Symbol Index Mapping messages occurs shortly after system 
+startup at approximately 12:15am ET. 
+Scheduled trading session hours on normal and early-close days for all NYSE markets can be found here. 
+Regularly scheduled auctions occur at the following times.  Trading halts and re-opens can occur anytime 
+during any session.  Trading halts can last from one session into the next. 
+ 
+All times are US Eastern Time 
+DESCRIPTION MARKET NORMAL AUCTION PERIOD 
+Early Opening 
+Auction 
+Arca 3:30am - 4:00am ET 
+American 7:00am - 9:30am ET 
+Core Opening 
+Auction 
+Arca 
+American 
+8:00am - 9:30am ET 
+NYSE 8:00am ET - the stock opens 
+Closing 
+Auction 
+Arca 
+American 
+3:00pm -  4:00pm ET 
+NYSE 3:50pm ET - the stock closes 
+ 
+During auction periods, Imbalance messages are published every second if there is any change from the last 
+publication. 
+On early closing days for all ARCA and American, the Closing auction runs from 12:00pm to 1:00pm. For 
+NYSE, the closing auction run from 12:50 until the stock closes. 
+  
+ 
+ 
+ 
+  
+NYSE  INTEGRATED FEED CLIENT SPECIFICATION 
+ 
+ 
+Integrated Feed v2.4a 31 
+ 
+APPENDIX B: Product IDs 
+Refresh and Retransmission Request messages must specify a Product ID.  The correct product IDs for the 
+Integrated Feeds: 
+EXCHANGE PRODUCT ID DESCRIPTION 
+NYSE 11 NYSE Integrated Feed 
+NYSE American 59 NYSE American Integrated Feed 
+NYSE National 109 NYSE National Integrated Feed 
+NYSE Arca 157 NYSE Arca Integrated Feed 
+NYSE Chicago 209 NYSE Chicago Integrated Feed 
+ 
+ 
