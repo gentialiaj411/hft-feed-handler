@@ -40,9 +40,17 @@ std::optional<mf::core::BookEvent> PillarParser::parse_message(
 
   CommonHeader h{};
   std::memcpy(&h, payload.data(), sizeof(h));
+
+  const std::uint16_t msg_size = read_le(h.msg_size_le);
   const std::uint16_t msg_type = read_le(h.msg_type_le);
+
   ++stats.type_counts[msg_type];
   ++stats.parsed_messages;
+
+  if (payload.size() < msg_size || msg_size < sizeof(CommonHeader)) {
+    ++stats.malformed_messages;
+    return std::nullopt;
+  }
 
   mf::core::BookEvent ev{};
   ev.venue = mf::core::Venue::Nyse;
@@ -51,67 +59,63 @@ std::optional<mf::core::BookEvent> PillarParser::parse_message(
   ev.exchange_ts_ns = read_le(h.source_time_ns_le);
   ev.raw_type = static_cast<std::uint8_t>(msg_type & 0xFFU);
 
-  auto require_size = [&](std::size_t n) {
-    if (payload.size() < n) {
+  auto require_exact_size = [&](std::size_t n) {
+    if (msg_size != n || payload.size() < n) {
       ++stats.malformed_messages;
       return false;
     }
     return true;
   };
 
-  // Scaffold mapping for message families; exact on-wire type ids finalized once
-  // official Pillar Integrated spec tables are pinned in repo.
   switch (msg_type) {
-    case 0x1001: {
-      if (!require_size(sizeof(AddOrderMessage))) return std::nullopt;
+    case 100: {
+      if (!require_exact_size(sizeof(AddOrderMessage))) return std::nullopt;
       AddOrderMessage m{};
       std::memcpy(&m, payload.data(), sizeof(m));
       ev.type = mf::core::EventType::Add;
       ev.order_id = read_le(m.order_id_le);
       ev.price = read_le(m.price_le);
-      ev.qty = read_le(m.qty_le);
+      ev.qty = read_le(m.volume_le);
       ev.side = decode_side(m.side);
-      ev.symbol.bytes = m.symbol;
       return ev;
     }
-    case 0x1002: {
-      if (!require_size(sizeof(ModifyOrderMessage))) return std::nullopt;
+    case 101: {
+      if (!require_exact_size(sizeof(ModifyOrderMessage))) return std::nullopt;
       ModifyOrderMessage m{};
       std::memcpy(&m, payload.data(), sizeof(m));
       ev.type = mf::core::EventType::Replace;
       ev.order_id = read_le(m.order_id_le);
-      ev.price = read_le(m.new_price_le);
-      ev.qty = read_le(m.new_qty_le);
+      ev.price = read_le(m.price_le);
+      ev.qty = read_le(m.volume_le);
       return ev;
     }
-    case 0x1003: {
-      if (!require_size(sizeof(DeleteOrderMessage))) return std::nullopt;
+    case 102: {
+      if (!require_exact_size(sizeof(DeleteOrderMessage))) return std::nullopt;
       DeleteOrderMessage m{};
       std::memcpy(&m, payload.data(), sizeof(m));
       ev.type = mf::core::EventType::Delete;
       ev.order_id = read_le(m.order_id_le);
       return ev;
     }
-    case 0x1004: {
-      if (!require_size(sizeof(ExecutionMessage))) return std::nullopt;
-      ExecutionMessage m{};
+    case 103: {
+      if (!require_exact_size(sizeof(OrderExecutionMessage))) return std::nullopt;
+      OrderExecutionMessage m{};
       std::memcpy(&m, payload.data(), sizeof(m));
-      ev.type = mf::core::EventType::Execute;
+      ev.type = mf::core::EventType::ExecutePrice;
       ev.order_id = read_le(m.order_id_le);
-      ev.qty = read_le(m.executed_qty_le);
-      ev.match_id = read_le(m.match_id_le);
+      ev.match_id = read_le(m.trade_id_le);
+      ev.price = read_le(m.price_le);
+      ev.qty = read_le(m.volume_le);
       return ev;
     }
-    case 0x1005: {
-      if (!require_size(sizeof(TradeMessage))) return std::nullopt;
-      TradeMessage m{};
+    case 110: {
+      if (!require_exact_size(sizeof(NonDisplayedTradeMessage))) return std::nullopt;
+      NonDisplayedTradeMessage m{};
       std::memcpy(&m, payload.data(), sizeof(m));
       ev.type = mf::core::EventType::Trade;
       ev.match_id = read_le(m.trade_id_le);
       ev.price = read_le(m.price_le);
-      ev.qty = read_le(m.qty_le);
-      ev.side = decode_side(m.side);
-      ev.symbol.bytes = m.symbol;
+      ev.qty = read_le(m.volume_le);
       return ev;
     }
     default:
