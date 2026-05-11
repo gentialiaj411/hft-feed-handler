@@ -11,6 +11,7 @@ add_library(multifeed_core
     src/core/crc32.cpp
     src/core/time.cpp
     src/phase2/deterministic_merger.cpp
+    src/phase2/pipeline.cpp
     src/phase2/recovery.cpp
     src/phase2/recovery_simulator.cpp
     src/phase2/sequence_tracker.cpp
@@ -43,6 +44,9 @@ target_link_libraries(test_phase2_recovery_simulator PRIVATE multifeed_core)
 
 add_executable(test_phase2_determinism_crc tests/test_phase2_determinism_crc.cpp)
 target_link_libraries(test_phase2_determinism_crc PRIVATE multifeed_core)
+
+add_executable(test_phase2_pipeline tests/test_phase2_pipeline.cpp)
+target_link_libraries(test_phase2_pipeline PRIVATE multifeed_core)
 
 if(MF_ENABLE_FUZZ)
   add_executable(fuzz_nasdaq_parser tests/fuzz/fuzz_nasdaq_parser.cpp)

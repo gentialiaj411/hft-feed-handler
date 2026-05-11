@@ -41,6 +41,7 @@
 ### Validator Integration (Phase 2)
 - `phase1_parser_validate` now has `--phase2-merge <nasdaq_file> <iex_pcap_file>`.
 - This mode routes parsed events through:
+  - `mf::phase2::Pipeline` (shared module)
   - `GapAwareSequencer` (per-venue sequence/gap state + recovery request signaling)
   - `ReplayRecoverySimulator` (replay-time missing-range fill from previously seen events)
   - deterministic gap-buffer release path

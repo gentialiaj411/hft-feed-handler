@@ -4,15 +4,12 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <map>
 #include <string>
 #include <vector>
 
 #include "mf/core/crc32.hpp"
 #include "mf/core/time.hpp"
-#include "mf/phase2/deterministic_merger.hpp"
-#include "mf/phase2/recovery.hpp"
-#include "mf/phase2/recovery_simulator.hpp"
+#include "mf/phase2/pipeline.hpp"
 #include "mf/proto/cboe/pitch_parser.hpp"
 #include "mf/proto/iex/deep_parser.hpp"
 #include "mf/proto/nasdaq/itch50_parser.hpp"
@@ -24,16 +21,6 @@ struct RunSummary {
   std::uint64_t parsed{0};
   std::uint64_t malformed{0};
   std::uint32_t crc{0};
-};
-
-struct Phase2Summary {
-  std::uint64_t accepted{0};
-  std::uint64_t dropped_duplicate_or_old{0};
-  std::uint64_t buffered_out_of_order{0};
-  std::uint64_t dropped_gap_too_large{0};
-  std::uint64_t recovery_requests{0};
-  std::uint64_t recovery_reinjected{0};
-  std::uint32_t merged_crc{0};
 };
 
 std::uint16_t read_u16_be(const std::uint8_t* p) {
@@ -244,93 +231,13 @@ void print_summary(const char* venue_name, const RunSummary& summary) {
   std::cout << "crc32=0x" << std::hex << std::setw(8) << std::setfill('0') << summary.crc << std::dec << "\n";
 }
 
-class Phase2EventPipeline {
- public:
-  Phase2EventPipeline(std::uint64_t gap_window, std::size_t per_venue_capacity)
-      : recovery_sim_(&recovery_store_), sequencer_(gap_window), merger_(per_venue_capacity) {
-    sequencer_.set_recovery_handler(&recovery_sim_);
-  }
-
-  void on_event(const mf::core::BookEvent& ev, Phase2Summary& summary) {
-    recovery_store_.record_event(ev);
-    process_event(ev, summary);
-    auto recovered = recovery_sim_.drain_recovered();
-    for (const auto& r : recovered) {
-      process_event(r, summary);
-      ++summary.recovery_reinjected;
-    }
-  }
-
-  void finalize(Phase2Summary& summary) {
-    mf::core::BookEvent ev{};
-    while (merger_.pop_next(ev)) {
-      update_crc_from_event(summary.merged_crc, ev);
-    }
-    summary.recovery_requests = recovery_sim_.requests_total();
-  }
-
- private:
-  static std::size_t venue_index(mf::core::Venue venue) noexcept {
-    return static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
-  }
-
-  void process_event(const mf::core::BookEvent& ev, Phase2Summary& summary) {
-    auto result = sequencer_.on_sequence(ev.venue, ev.sequence);
-
-    if (result.update.status == mf::phase2::SequenceStatus::DuplicateOrOld) {
-      ++summary.dropped_duplicate_or_old;
-      return;
-    }
-    if (result.update.status == mf::phase2::SequenceStatus::GapTooLarge) {
-      ++summary.dropped_gap_too_large;
-      return;
-    }
-
-    auto& pending = pending_by_venue_[venue_index(ev.venue)];
-    if (result.update.status == mf::phase2::SequenceStatus::GapBuffered) {
-      pending[ev.sequence] = ev;
-      ++summary.buffered_out_of_order;
-      return;
-    }
-
-    if (result.update.status == mf::phase2::SequenceStatus::InOrder) {
-      publish(ev, summary);
-      std::uint64_t to_release = (result.update.released_count > 0) ? (result.update.released_count - 1) : 0;
-      std::uint64_t seq = ev.sequence + 1;
-      while (to_release > 0) {
-        auto it = pending.find(seq);
-        if (it == pending.end()) {
-          break;
-        }
-        publish(it->second, summary);
-        pending.erase(it);
-        ++seq;
-        --to_release;
-      }
-    }
-  }
-
-  void publish(const mf::core::BookEvent& ev, Phase2Summary& summary) {
-    if (merger_.push(ev)) {
-      ++summary.accepted;
-    }
-  }
-
-  mf::phase2::ReplayRecoveryStore recovery_store_{};
-  mf::phase2::ReplayRecoverySimulator recovery_sim_;
-  mf::phase2::GapAwareSequencer sequencer_;
-  mf::phase2::DeterministicMerger merger_;
-  std::array<std::map<std::uint64_t, mf::core::BookEvent>, 3> pending_by_venue_{};
-};
-
 template <typename ParserT, typename StatsT>
 RunSummary run_framed_file_phase2(
     const std::string& path,
     ParserT& parser,
     StatsT& stats,
     const char* venue_name,
-    Phase2EventPipeline& pipeline,
-    Phase2Summary& phase2) {
+    mf::phase2::Pipeline& pipeline) {
   std::ifstream in(path, std::ios::binary);
   if (!in) {
     throw std::runtime_error(std::string("failed to open input file for ") + venue_name + ": " + path);
@@ -363,7 +270,7 @@ RunSummary run_framed_file_phase2(
     }
     ++summary.parsed;
     update_crc_from_event(summary.crc, *ev);
-    pipeline.on_event(*ev, phase2);
+    pipeline.on_event(*ev);
   }
 
   summary.malformed += stats.malformed_messages;
@@ -375,8 +282,7 @@ RunSummary run_iex_pcap_file_phase2(
     const std::string& path,
     IexParserT& parser,
     IexStatsT& stats,
-    Phase2EventPipeline& pipeline,
-    Phase2Summary& phase2) {
+    mf::phase2::Pipeline& pipeline) {
   std::ifstream in(path, std::ios::binary);
   if (!in) {
     throw std::runtime_error("failed to open iex pcap file: " + path);
@@ -455,7 +361,7 @@ RunSummary run_iex_pcap_file_phase2(
       if (ev.has_value()) {
         ++summary.parsed;
         update_crc_from_event(summary.crc, *ev);
-        pipeline.on_event(*ev, phase2);
+        pipeline.on_event(*ev);
       }
       off += msg_len;
     }
@@ -481,15 +387,14 @@ int main(int argc, char** argv) {
       mf::proto::nasdaq::ParseStats nasdaq_stats;
       mf::proto::iex::DeepParser iex_parser;
       mf::proto::iex::ParseStats iex_stats;
-      Phase2Summary phase2{};
-      Phase2EventPipeline pipeline(/*gap_window=*/256, /*per_venue_capacity=*/1U << 20U);
+      mf::phase2::Pipeline pipeline(/*gap_window=*/256, /*per_venue_capacity=*/1U << 20U);
 
-      const RunSummary nasdaq =
-          run_framed_file_phase2(argv[2], nasdaq_parser, nasdaq_stats, "nasdaq", pipeline, phase2);
+      const RunSummary nasdaq = run_framed_file_phase2(argv[2], nasdaq_parser, nasdaq_stats, "nasdaq", pipeline);
       const RunSummary iex =
-          run_iex_pcap_file_phase2(argv[3], iex_parser, iex_stats, pipeline, phase2);
+          run_iex_pcap_file_phase2(argv[3], iex_parser, iex_stats, pipeline);
 
-      pipeline.finalize(phase2);
+      pipeline.finalize();
+      const auto& phase2 = pipeline.stats();
 
       print_summary("nasdaq", nasdaq);
       std::cout << "type_counts:\n";
