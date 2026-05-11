@@ -39,7 +39,7 @@
   - integrate merged output path into dedicated benchmark and JIT bridge
 
 ### Validator Integration (Phase 2)
-- `phase1_parser_validate` now has `--phase2-merge <nasdaq_file> <iex_pcap_file>`.
+- `phase1_parser_validate` now has `--phase2-merge <nasdaq_file> <iex_pcap_file> [cboe_file]`.
 - This mode routes parsed events through:
   - `mf::phase2::Pipeline` (shared module)
   - `GapAwareSequencer` (per-venue sequence/gap state + recovery request signaling)
@@ -47,6 +47,7 @@
   - deterministic gap-buffer release path
   - `DeterministicMerger` (canonical publish order)
 - It reports `merged_crc32` and recovery/gap counters for deterministic framework bring-up.
+- Cboe is optional in this mode, preserving pluggability while licensing/data remains a separate validation track.
 - Deterministic merge ordering is covered by a dedicated unit-style CRC invariance test (`test_phase2_determinism_crc`) that compares multiple arrival permutations of the same logical event set.
 
 ## Latency budget (laptop-bound target)
