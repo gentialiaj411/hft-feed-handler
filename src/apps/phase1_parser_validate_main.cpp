@@ -12,6 +12,7 @@
 #include "mf/core/time.hpp"
 #include "mf/phase2/deterministic_merger.hpp"
 #include "mf/phase2/recovery.hpp"
+#include "mf/phase2/recovery_simulator.hpp"
 #include "mf/proto/cboe/pitch_parser.hpp"
 #include "mf/proto/iex/deep_parser.hpp"
 #include "mf/proto/nasdaq/itch50_parser.hpp"
@@ -31,6 +32,7 @@ struct Phase2Summary {
   std::uint64_t buffered_out_of_order{0};
   std::uint64_t dropped_gap_too_large{0};
   std::uint64_t recovery_requests{0};
+  std::uint64_t recovery_reinjected{0};
   std::uint32_t merged_crc{0};
 };
 
@@ -242,26 +244,38 @@ void print_summary(const char* venue_name, const RunSummary& summary) {
   std::cout << "crc32=0x" << std::hex << std::setw(8) << std::setfill('0') << summary.crc << std::dec << "\n";
 }
 
-class CountingRecoveryHandler final : public mf::phase2::IRecoveryHandler {
- public:
-  void request_recovery(const mf::phase2::RecoveryRequest&) noexcept override {
-    ++count;
-  }
-  std::uint64_t count{0};
-};
-
 class Phase2EventPipeline {
  public:
   Phase2EventPipeline(std::uint64_t gap_window, std::size_t per_venue_capacity)
-      : sequencer_(gap_window), merger_(per_venue_capacity) {
-    sequencer_.set_recovery_handler(&recovery_counter_);
+      : recovery_sim_(&recovery_store_), sequencer_(gap_window), merger_(per_venue_capacity) {
+    sequencer_.set_recovery_handler(&recovery_sim_);
   }
 
   void on_event(const mf::core::BookEvent& ev, Phase2Summary& summary) {
-    auto result = sequencer_.on_sequence(ev.venue, ev.sequence);
-    if (result.recovery.has_value()) {
-      ++summary.recovery_requests;
+    recovery_store_.record_event(ev);
+    process_event(ev, summary);
+    auto recovered = recovery_sim_.drain_recovered();
+    for (const auto& r : recovered) {
+      process_event(r, summary);
+      ++summary.recovery_reinjected;
     }
+  }
+
+  void finalize(Phase2Summary& summary) {
+    mf::core::BookEvent ev{};
+    while (merger_.pop_next(ev)) {
+      update_crc_from_event(summary.merged_crc, ev);
+    }
+    summary.recovery_requests = recovery_sim_.requests_total();
+  }
+
+ private:
+  static std::size_t venue_index(mf::core::Venue venue) noexcept {
+    return static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
+  }
+
+  void process_event(const mf::core::BookEvent& ev, Phase2Summary& summary) {
+    auto result = sequencer_.on_sequence(ev.venue, ev.sequence);
 
     if (result.update.status == mf::phase2::SequenceStatus::DuplicateOrOld) {
       ++summary.dropped_duplicate_or_old;
@@ -296,28 +310,16 @@ class Phase2EventPipeline {
     }
   }
 
-  void finalize(Phase2Summary& summary) {
-    mf::core::BookEvent ev{};
-    while (merger_.pop_next(ev)) {
-      update_crc_from_event(summary.merged_crc, ev);
-    }
-    summary.recovery_requests = recovery_counter_.count;
-  }
-
- private:
-  static std::size_t venue_index(mf::core::Venue venue) noexcept {
-    return static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
-  }
-
   void publish(const mf::core::BookEvent& ev, Phase2Summary& summary) {
     if (merger_.push(ev)) {
       ++summary.accepted;
     }
   }
 
+  mf::phase2::ReplayRecoveryStore recovery_store_{};
+  mf::phase2::ReplayRecoverySimulator recovery_sim_;
   mf::phase2::GapAwareSequencer sequencer_;
   mf::phase2::DeterministicMerger merger_;
-  CountingRecoveryHandler recovery_counter_{};
   std::array<std::map<std::uint64_t, mf::core::BookEvent>, 3> pending_by_venue_{};
 };
 
@@ -501,6 +503,7 @@ int main(int argc, char** argv) {
       std::cout << "buffered_out_of_order=" << phase2.buffered_out_of_order << "\n";
       std::cout << "dropped_gap_too_large=" << phase2.dropped_gap_too_large << "\n";
       std::cout << "recovery_requests=" << phase2.recovery_requests << "\n";
+      std::cout << "recovery_reinjected=" << phase2.recovery_reinjected << "\n";
       std::cout << "merged_crc32=0x" << std::hex << std::setw(8) << std::setfill('0') << phase2.merged_crc << std::dec
                 << "\n";
       return 0;

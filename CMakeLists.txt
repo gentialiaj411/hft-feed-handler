@@ -12,6 +12,7 @@ add_library(multifeed_core
     src/core/time.cpp
     src/phase2/deterministic_merger.cpp
     src/phase2/recovery.cpp
+    src/phase2/recovery_simulator.cpp
     src/phase2/sequence_tracker.cpp
     src/proto/nasdaq/itch50_parser.cpp
     src/proto/iex/deep_parser.cpp
@@ -36,6 +37,9 @@ target_link_libraries(test_phase2_sequence_tracker PRIVATE multifeed_core)
 
 add_executable(test_phase2_recovery_merge tests/test_phase2_recovery_merge.cpp)
 target_link_libraries(test_phase2_recovery_merge PRIVATE multifeed_core)
+
+add_executable(test_phase2_recovery_simulator tests/test_phase2_recovery_simulator.cpp)
+target_link_libraries(test_phase2_recovery_simulator PRIVATE multifeed_core)
 
 if(MF_ENABLE_FUZZ)
   add_executable(fuzz_nasdaq_parser tests/fuzz/fuzz_nasdaq_parser.cpp)
