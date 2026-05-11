@@ -8,7 +8,9 @@
 #include <vector>
 
 #include "mf/core/crc32.hpp"
+#include "mf/core/spsc_ring.hpp"
 #include "mf/core/time.hpp"
+#include "mf/phase2/jit_bridge.hpp"
 #include "mf/phase2/pipeline.hpp"
 #include "mf/proto/cboe/pitch_parser.hpp"
 #include "mf/proto/iex/deep_parser.hpp"
@@ -374,6 +376,76 @@ RunSummary run_iex_pcap_file_phase2(
 }  // namespace
 
 int main(int argc, char** argv) {
+  if ((argc == 4 || argc == 5) && std::string(argv[1]) == "--phase2-merge-jit") {
+    try {
+      if (looks_like_text_csv(argv[2])) {
+        throw std::runtime_error("nasdaq input appears to be text/CSV, expected framed binary wire messages");
+      }
+      if (looks_like_text_csv(argv[3])) {
+        throw std::runtime_error("iex input appears to be text/CSV, expected pcap-derived binary");
+      }
+      if (argc == 5 && looks_like_text_csv(argv[4])) {
+        throw std::runtime_error("cboe input appears to be text/CSV, expected framed binary wire messages");
+      }
+
+      mf::proto::nasdaq::Itch50Parser nasdaq_parser;
+      mf::proto::nasdaq::ParseStats nasdaq_stats;
+      mf::proto::iex::DeepParser iex_parser;
+      mf::proto::iex::ParseStats iex_stats;
+      mf::proto::cboe::PitchParser cboe_parser;
+      mf::proto::cboe::ParseStats cboe_stats;
+      mf::phase2::Pipeline pipeline(/*gap_window=*/256, /*per_venue_capacity=*/1U << 20U);
+      mf::core::SPSCRingBuffer<mf::phase2::JitSignalEvent, 1U << 20U> jit_ring;
+      mf::phase2::RingJitPublisher<(1U << 20U)> pub(&jit_ring);
+      mf::phase2::JitBridge jit_bridge(&pub);
+
+      const RunSummary nasdaq = run_framed_file_phase2(argv[2], nasdaq_parser, nasdaq_stats, "nasdaq", pipeline);
+      const RunSummary iex = run_iex_pcap_file_phase2(argv[3], iex_parser, iex_stats, pipeline);
+      const bool has_cboe = (argc == 5);
+      RunSummary cboe{};
+      if (has_cboe) {
+        cboe = run_framed_file_phase2(argv[4], cboe_parser, cboe_stats, "cboe", pipeline);
+      }
+
+      pipeline.finalize(&jit_bridge);
+      const auto& phase2 = pipeline.stats();
+      const auto& jit = jit_bridge.stats();
+
+      print_summary("nasdaq", nasdaq);
+      std::cout << "type_counts:\n";
+      print_type_counts(nasdaq_stats);
+      print_summary("iex", iex);
+      std::cout << "type_counts:\n";
+      print_type_counts(iex_stats);
+      if (has_cboe) {
+        print_summary("cboe", cboe);
+        std::cout << "type_counts:\n";
+        print_type_counts(cboe_stats);
+      } else {
+        std::cout << "[cboe]\n";
+        std::cout << "skipped (no input file provided)\n";
+      }
+      std::cout << "[phase2]\n";
+      std::cout << "accepted=" << phase2.accepted << "\n";
+      std::cout << "dropped_publish_overflow=" << phase2.dropped_publish_overflow << "\n";
+      std::cout << "dropped_duplicate_or_old=" << phase2.dropped_duplicate_or_old << "\n";
+      std::cout << "buffered_out_of_order=" << phase2.buffered_out_of_order << "\n";
+      std::cout << "dropped_gap_too_large=" << phase2.dropped_gap_too_large << "\n";
+      std::cout << "recovery_requests=" << phase2.recovery_requests << "\n";
+      std::cout << "recovery_reinjected=" << phase2.recovery_reinjected << "\n";
+      std::cout << "merged_crc32=0x" << std::hex << std::setw(8) << std::setfill('0') << phase2.merged_crc << std::dec
+                << "\n";
+      std::cout << "[jit_bridge]\n";
+      std::cout << "published=" << jit.published << "\n";
+      std::cout << "dropped=" << jit.dropped << "\n";
+      std::cout << "ring_size=" << jit_ring.size() << "\n";
+      return 0;
+    } catch (const std::exception& ex) {
+      std::cerr << ex.what() << "\n";
+      return 1;
+    }
+  }
+
   if ((argc == 4 || argc == 5) && std::string(argv[1]) == "--phase2-merge") {
     try {
       if (looks_like_text_csv(argv[2])) {
@@ -479,6 +551,7 @@ int main(int argc, char** argv) {
   if (argc != 3 && argc != 4 && argc != 5) {
     std::cerr << "usage: phase1_parser_validate <nasdaq_itch_file> <iex_deep_file> [cboe_pitch_file]\n";
     std::cerr << "   or: phase1_parser_validate --phase2-merge <nasdaq_itch_file> <iex_pcap_file> [cboe_pitch_file]\n";
+    std::cerr << "   or: phase1_parser_validate --phase2-merge-jit <nasdaq_itch_file> <iex_pcap_file> [cboe_pitch_file]\n";
     std::cerr << "   or: phase1_parser_validate --nasdaq-only <nasdaq_itch_file>\n";
     std::cerr << "   or: phase1_parser_validate --iex-only <iex_pcap_file>\n";
     return 2;

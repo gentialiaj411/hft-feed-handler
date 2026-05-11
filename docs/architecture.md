@@ -35,8 +35,7 @@
   - out-of-order packets within window are buffered and released deterministically once gaps are filled
   - packets beyond window are reported as oversized gaps for recovery path handling
 - Remaining Phase 2 work:
-  - bind recovery requests to replay/retransmission simulation transport
-  - integrate merged output path into dedicated benchmark and JIT bridge
+  - add dedicated Phase 2 benchmark harness for merged pipeline path
 
 ### Validator Integration (Phase 2)
 - `phase1_parser_validate` now has `--phase2-merge <nasdaq_file> <iex_pcap_file> [cboe_file]`.
@@ -50,6 +49,7 @@
 - It also reports `dropped_publish_overflow` so bounded queue-pressure drops are explicit (never silent).
 - Cboe is optional in this mode, preserving pluggability while licensing/data remains a separate validation track.
 - Deterministic merge ordering is covered by a dedicated unit-style CRC invariance test (`test_phase2_determinism_crc`) that compares multiple arrival permutations of the same logical event set.
+- `phase1_parser_validate` also has `--phase2-merge-jit ...` mode, which drains merged events into a JIT bridge publisher backed by an SPSC ring and reports publish/drop counters.
 
 ## Latency budget (laptop-bound target)
 - Parse/decode: 35-80 ns

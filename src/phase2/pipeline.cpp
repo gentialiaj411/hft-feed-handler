@@ -32,9 +32,12 @@ void Pipeline::on_event(const mf::core::BookEvent& ev) {
   }
 }
 
-void Pipeline::finalize() {
+void Pipeline::finalize(IMergedEventSink* sink) {
   mf::core::BookEvent ev{};
   while (merger_.pop_next(ev)) {
+    if (sink != nullptr) {
+      sink->on_merged_event(ev);
+    }
     update_crc_from_event(stats_.merged_crc, ev);
   }
   stats_.recovery_requests = recovery_sim_.requests_total();

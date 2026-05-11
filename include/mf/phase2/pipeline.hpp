@@ -12,6 +12,12 @@
 
 namespace mf::phase2 {
 
+class IMergedEventSink {
+ public:
+  virtual ~IMergedEventSink() = default;
+  virtual void on_merged_event(const mf::core::BookEvent& ev) noexcept = 0;
+};
+
 struct PipelineStats {
   std::uint64_t accepted{0};
   std::uint64_t dropped_publish_overflow{0};
@@ -28,7 +34,7 @@ class Pipeline {
   Pipeline(std::uint64_t gap_window, std::size_t per_venue_capacity);
 
   void on_event(const mf::core::BookEvent& ev);
-  void finalize();
+  void finalize(IMergedEventSink* sink = nullptr);
   [[nodiscard]] const PipelineStats& stats() const noexcept { return stats_; }
 
  private:
