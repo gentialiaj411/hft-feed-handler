@@ -11,9 +11,10 @@
 namespace mf::proto::iex {
 
 struct ParseStats {
-  std::array<std::uint64_t, 65536> type_counts{};
+  std::array<std::uint64_t, 256> type_counts{};
   std::uint64_t parsed_messages{0};
   std::uint64_t malformed_messages{0};
+  std::uint64_t unimplemented_messages{0};
 };
 
 class DeepParser {
