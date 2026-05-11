@@ -5,58 +5,102 @@
 
 namespace mf::proto::cboe {
 
+// Cboe Titanium U.S. Equities TCP PITCH uses fixed-length ASCII messages.
+// Offsets/lengths follow the exchange specification.
 #pragma pack(push, 1)
 
-// NOTE: Phase-1 scaffold layouts pending exact exchange spec pin.
-struct CommonHeader {
-  std::uint8_t length;
-  std::uint8_t msg_type;
-  std::uint32_t time_offset_ns_le;
+struct AddOrderShortMessage {
+  std::array<char, 8> timestamp_ms;
+  char msg_type;                 // 'A'
+  std::array<char, 12> order_id; // Base36
+  char side;                     // B/S
+  std::array<char, 6> shares;
+  std::array<char, 6> symbol;
+  std::array<char, 10> price;
+  char reserved;
 };
-static_assert(sizeof(CommonHeader) == 6, "PITCH layout drift: CommonHeader");
+static_assert(sizeof(AddOrderShortMessage) == 45, "PITCH layout drift: AddOrderShortMessage");
 
-struct AddOrderMessage {
-  CommonHeader h;
-  std::uint64_t order_id_le;
+struct AddOrderLongMessage {
+  std::array<char, 8> timestamp_ms;
+  char msg_type;                  // 'd'
+  std::array<char, 12> order_id;
   char side;
-  std::uint32_t qty_le;
+  std::array<char, 6> shares;
   std::array<char, 8> symbol;
-  std::uint32_t price_le;
+  std::array<char, 10> price;
+  char reserved;
+  std::array<char, 4> participant_id;
+  char customer_indicator;
 };
-static_assert(sizeof(AddOrderMessage) == 31, "PITCH layout drift: AddOrderMessage");
+static_assert(sizeof(AddOrderLongMessage) == 52, "PITCH layout drift: AddOrderLongMessage");
+
+struct AddOrderExtendedMessage {
+  std::array<char, 8> timestamp_ms;
+  char msg_type;                  // '1'
+  std::array<char, 12> order_id;
+  char side;
+  std::array<char, 6> shares;
+  std::array<char, 8> symbol;
+  std::array<char, 14> price_long;
+  char display;
+  std::array<char, 4> participant_id;
+  char customer_indicator;
+};
+static_assert(sizeof(AddOrderExtendedMessage) == 56, "PITCH layout drift: AddOrderExtendedMessage");
 
 struct OrderExecutedMessage {
-  CommonHeader h;
-  std::uint64_t order_id_le;
-  std::uint32_t executed_qty_le;
-  std::uint64_t match_id_le;
+  std::array<char, 8> timestamp_ms;
+  char msg_type;                  // 'E'
+  std::array<char, 12> order_id;
+  std::array<char, 6> executed_shares;
+  std::array<char, 12> execution_id;
 };
-static_assert(sizeof(OrderExecutedMessage) == 26, "PITCH layout drift: OrderExecutedMessage");
+static_assert(sizeof(OrderExecutedMessage) == 39, "PITCH layout drift: OrderExecutedMessage");
 
 struct OrderCancelMessage {
-  CommonHeader h;
-  std::uint64_t order_id_le;
-  std::uint32_t canceled_qty_le;
+  std::array<char, 8> timestamp_ms;
+  char msg_type;                  // 'X'
+  std::array<char, 12> order_id;
+  std::array<char, 6> canceled_shares;
 };
-static_assert(sizeof(OrderCancelMessage) == 18, "PITCH layout drift: OrderCancelMessage");
+static_assert(sizeof(OrderCancelMessage) == 27, "PITCH layout drift: OrderCancelMessage");
 
-struct OrderModifyMessage {
-  CommonHeader h;
-  std::uint64_t order_id_le;
-  std::uint32_t new_qty_le;
-  std::uint32_t new_price_le;
-};
-static_assert(sizeof(OrderModifyMessage) == 22, "PITCH layout drift: OrderModifyMessage");
-
-struct TradeMessage {
-  CommonHeader h;
-  std::uint64_t trade_id_le;
+struct TradeShortMessage {
+  std::array<char, 8> timestamp_ms;
+  char msg_type;                  // 'P'
+  std::array<char, 12> order_id;
   char side;
-  std::uint32_t qty_le;
-  std::array<char, 8> symbol;
-  std::uint32_t price_le;
+  std::array<char, 6> shares;
+  std::array<char, 6> symbol;
+  std::array<char, 10> price;
+  std::array<char, 12> execution_id;
 };
-static_assert(sizeof(TradeMessage) == 31, "PITCH layout drift: TradeMessage");
+static_assert(sizeof(TradeShortMessage) == 56, "PITCH layout drift: TradeShortMessage");
+
+struct TradeLongMessage {
+  std::array<char, 8> timestamp_ms;
+  char msg_type;                  // 'r'
+  std::array<char, 12> order_id;
+  char side;
+  std::array<char, 6> shares;
+  std::array<char, 8> symbol;
+  std::array<char, 10> price;
+  std::array<char, 12> execution_id;
+};
+static_assert(sizeof(TradeLongMessage) == 58, "PITCH layout drift: TradeLongMessage");
+
+struct TradeExtendedMessage {
+  std::array<char, 8> timestamp_ms;
+  char msg_type;                  // '2'
+  std::array<char, 12> order_id;
+  char side;
+  std::array<char, 6> shares;
+  std::array<char, 8> symbol;
+  std::array<char, 14> price_long;
+  std::array<char, 12> execution_id;
+};
+static_assert(sizeof(TradeExtendedMessage) == 62, "PITCH layout drift: TradeExtendedMessage");
 
 #pragma pack(pop)
 

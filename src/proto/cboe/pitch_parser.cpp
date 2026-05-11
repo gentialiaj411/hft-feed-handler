@@ -1,27 +1,66 @@
 #include "mf/proto/cboe/pitch_parser.hpp"
 
+#include <algorithm>
 #include <cstring>
 
 #include "mf/proto/cboe/pitch_messages.hpp"
 
 namespace {
 
-template <typename T>
-T read_le(const T& v) noexcept {
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  return v;
-#else
-  if constexpr (sizeof(T) == 2) return static_cast<T>(__builtin_bswap16(static_cast<std::uint16_t>(v)));
-  if constexpr (sizeof(T) == 4) return static_cast<T>(__builtin_bswap32(static_cast<std::uint32_t>(v)));
-  if constexpr (sizeof(T) == 8) return static_cast<T>(__builtin_bswap64(static_cast<std::uint64_t>(v)));
-  return v;
-#endif
+std::uint64_t parse_ascii_u64(const char* p, std::size_t n) noexcept {
+  std::uint64_t value = 0;
+  for (std::size_t i = 0; i < n; ++i) {
+    const char c = p[i];
+    if (c < '0' || c > '9') return 0;
+    value = (value * 10ULL) + static_cast<std::uint64_t>(c - '0');
+  }
+  return value;
+}
+
+std::uint64_t parse_base36_u64(const char* p, std::size_t n) noexcept {
+  std::uint64_t value = 0;
+  for (std::size_t i = 0; i < n; ++i) {
+    const char c = p[i];
+    std::uint64_t digit = 0;
+    if (c >= '0' && c <= '9') {
+      digit = static_cast<std::uint64_t>(c - '0');
+    } else if (c >= 'A' && c <= 'Z') {
+      digit = static_cast<std::uint64_t>(10 + (c - 'A'));
+    } else {
+      return 0;
+    }
+    value = (value * 36ULL) + digit;
+  }
+  return value;
+}
+
+std::uint32_t parse_price_4dp(const char* p10) noexcept {
+  // Price format: 6 whole + 4 decimal digits, no dot.
+  const std::uint64_t v = parse_ascii_u64(p10, 10);
+  return static_cast<std::uint32_t>(std::min<std::uint64_t>(v, UINT32_MAX));
+}
+
+std::uint32_t parse_long_price_6dp_to_4dp(const char* p14) noexcept {
+  // Long Price format: 8 whole + 6 decimal digits. Normalize to 4dp by /100.
+  const std::uint64_t v = parse_ascii_u64(p14, 14);
+  const std::uint64_t normalized = v / 100ULL;
+  return static_cast<std::uint32_t>(std::min<std::uint64_t>(normalized, UINT32_MAX));
 }
 
 mf::core::Side decode_side(char c) noexcept {
   if (c == 'B') return mf::core::Side::Buy;
   if (c == 'S') return mf::core::Side::Sell;
   return mf::core::Side::Unknown;
+}
+
+void copy_symbol(mf::core::SymbolKey& out, const char* src, std::size_t n) noexcept {
+  out.bytes.fill(' ');
+  const std::size_t m = (n < out.bytes.size()) ? n : out.bytes.size();
+  std::memcpy(out.bytes.data(), src, m);
+}
+
+std::uint64_t ts_ms_to_ns(const char* ts8) noexcept {
+  return parse_ascii_u64(ts8, 8) * 1000000ULL;
 }
 
 }  // namespace
@@ -33,86 +72,132 @@ std::optional<mf::core::BookEvent> PitchParser::parse_message(
     std::uint64_t sequence,
     std::uint64_t ingest_ts_ns,
     ParseStats& stats) const noexcept {
-  if (payload.size() < sizeof(CommonHeader)) {
+  if (payload.size() < 9) {
     ++stats.malformed_messages;
     return std::nullopt;
   }
 
-  CommonHeader h{};
-  std::memcpy(&h, payload.data(), sizeof(h));
-  const std::uint8_t msg_type = h.msg_type;
-  ++stats.type_counts[msg_type];
+  const char msg_type = static_cast<char>(payload[8]);
+  ++stats.type_counts[static_cast<std::uint8_t>(msg_type)];
   ++stats.parsed_messages;
 
   mf::core::BookEvent ev{};
   ev.venue = mf::core::Venue::Cboe;
   ev.sequence = sequence;
   ev.ingest_ts_ns = ingest_ts_ns;
-  ev.exchange_ts_ns = read_le(h.time_offset_ns_le);
-  ev.raw_type = msg_type;
+  ev.raw_type = static_cast<std::uint8_t>(msg_type);
 
-  auto require_size = [&](std::size_t n) {
-    if (payload.size() < n) {
+  auto require_exact = [&](std::size_t n) {
+    if (payload.size() != n) {
       ++stats.malformed_messages;
       return false;
     }
     return true;
   };
 
-  // Scaffold mapping for major PITCH families; exact type ids are finalized
-  // once spec references are pinned in-repo.
   switch (msg_type) {
-    case 0x21: {
-      if (!require_size(sizeof(AddOrderMessage))) return std::nullopt;
-      AddOrderMessage m{};
+    case 'A': {
+      if (!require_exact(sizeof(AddOrderShortMessage))) return std::nullopt;
+      AddOrderShortMessage m{};
       std::memcpy(&m, payload.data(), sizeof(m));
       ev.type = mf::core::EventType::Add;
-      ev.order_id = read_le(m.order_id_le);
+      ev.exchange_ts_ns = ts_ms_to_ns(m.timestamp_ms.data());
+      ev.order_id = parse_base36_u64(m.order_id.data(), m.order_id.size());
       ev.side = decode_side(m.side);
-      ev.qty = read_le(m.qty_le);
-      ev.symbol.bytes = m.symbol;
-      ev.price = read_le(m.price_le);
+      ev.qty = static_cast<std::uint32_t>(parse_ascii_u64(m.shares.data(), m.shares.size()));
+      copy_symbol(ev.symbol, m.symbol.data(), m.symbol.size());
+      ev.price = parse_price_4dp(m.price.data());
       return ev;
     }
-    case 0x22: {
-      if (!require_size(sizeof(OrderExecutedMessage))) return std::nullopt;
+    case 'd': {
+      if (!require_exact(sizeof(AddOrderLongMessage))) return std::nullopt;
+      AddOrderLongMessage m{};
+      std::memcpy(&m, payload.data(), sizeof(m));
+      ev.type = mf::core::EventType::AddMpid;
+      ev.exchange_ts_ns = ts_ms_to_ns(m.timestamp_ms.data());
+      ev.order_id = parse_base36_u64(m.order_id.data(), m.order_id.size());
+      ev.side = decode_side(m.side);
+      ev.qty = static_cast<std::uint32_t>(parse_ascii_u64(m.shares.data(), m.shares.size()));
+      copy_symbol(ev.symbol, m.symbol.data(), m.symbol.size());
+      ev.price = parse_price_4dp(m.price.data());
+      ev.mpid = std::array<char,4>{m.participant_id[0],m.participant_id[1],m.participant_id[2],m.participant_id[3]};
+      return ev;
+    }
+    case '1': {
+      if (!require_exact(sizeof(AddOrderExtendedMessage))) return std::nullopt;
+      AddOrderExtendedMessage m{};
+      std::memcpy(&m, payload.data(), sizeof(m));
+      ev.type = mf::core::EventType::AddMpid;
+      ev.exchange_ts_ns = ts_ms_to_ns(m.timestamp_ms.data());
+      ev.order_id = parse_base36_u64(m.order_id.data(), m.order_id.size());
+      ev.side = decode_side(m.side);
+      ev.qty = static_cast<std::uint32_t>(parse_ascii_u64(m.shares.data(), m.shares.size()));
+      copy_symbol(ev.symbol, m.symbol.data(), m.symbol.size());
+      ev.price = parse_long_price_6dp_to_4dp(m.price_long.data());
+      ev.mpid = std::array<char,4>{m.participant_id[0],m.participant_id[1],m.participant_id[2],m.participant_id[3]};
+      return ev;
+    }
+    case 'E': {
+      if (!require_exact(sizeof(OrderExecutedMessage))) return std::nullopt;
       OrderExecutedMessage m{};
       std::memcpy(&m, payload.data(), sizeof(m));
       ev.type = mf::core::EventType::Execute;
-      ev.order_id = read_le(m.order_id_le);
-      ev.qty = read_le(m.executed_qty_le);
-      ev.match_id = read_le(m.match_id_le);
+      ev.exchange_ts_ns = ts_ms_to_ns(m.timestamp_ms.data());
+      ev.order_id = parse_base36_u64(m.order_id.data(), m.order_id.size());
+      ev.qty = static_cast<std::uint32_t>(parse_ascii_u64(m.executed_shares.data(), m.executed_shares.size()));
+      ev.match_id = parse_base36_u64(m.execution_id.data(), m.execution_id.size());
       return ev;
     }
-    case 0x23: {
-      if (!require_size(sizeof(OrderCancelMessage))) return std::nullopt;
+    case 'X': {
+      if (!require_exact(sizeof(OrderCancelMessage))) return std::nullopt;
       OrderCancelMessage m{};
       std::memcpy(&m, payload.data(), sizeof(m));
       ev.type = mf::core::EventType::Cancel;
-      ev.order_id = read_le(m.order_id_le);
-      ev.qty = read_le(m.canceled_qty_le);
+      ev.exchange_ts_ns = ts_ms_to_ns(m.timestamp_ms.data());
+      ev.order_id = parse_base36_u64(m.order_id.data(), m.order_id.size());
+      ev.qty = static_cast<std::uint32_t>(parse_ascii_u64(m.canceled_shares.data(), m.canceled_shares.size()));
       return ev;
     }
-    case 0x24: {
-      if (!require_size(sizeof(OrderModifyMessage))) return std::nullopt;
-      OrderModifyMessage m{};
-      std::memcpy(&m, payload.data(), sizeof(m));
-      ev.type = mf::core::EventType::Replace;
-      ev.order_id = read_le(m.order_id_le);
-      ev.qty = read_le(m.new_qty_le);
-      ev.price = read_le(m.new_price_le);
-      return ev;
-    }
-    case 0x25: {
-      if (!require_size(sizeof(TradeMessage))) return std::nullopt;
-      TradeMessage m{};
+    case 'P': {
+      if (!require_exact(sizeof(TradeShortMessage))) return std::nullopt;
+      TradeShortMessage m{};
       std::memcpy(&m, payload.data(), sizeof(m));
       ev.type = mf::core::EventType::Trade;
-      ev.match_id = read_le(m.trade_id_le);
+      ev.exchange_ts_ns = ts_ms_to_ns(m.timestamp_ms.data());
+      ev.order_id = parse_base36_u64(m.order_id.data(), m.order_id.size());
       ev.side = decode_side(m.side);
-      ev.qty = read_le(m.qty_le);
-      ev.symbol.bytes = m.symbol;
-      ev.price = read_le(m.price_le);
+      ev.qty = static_cast<std::uint32_t>(parse_ascii_u64(m.shares.data(), m.shares.size()));
+      copy_symbol(ev.symbol, m.symbol.data(), m.symbol.size());
+      ev.price = parse_price_4dp(m.price.data());
+      ev.match_id = parse_base36_u64(m.execution_id.data(), m.execution_id.size());
+      return ev;
+    }
+    case 'r': {
+      if (!require_exact(sizeof(TradeLongMessage))) return std::nullopt;
+      TradeLongMessage m{};
+      std::memcpy(&m, payload.data(), sizeof(m));
+      ev.type = mf::core::EventType::Trade;
+      ev.exchange_ts_ns = ts_ms_to_ns(m.timestamp_ms.data());
+      ev.order_id = parse_base36_u64(m.order_id.data(), m.order_id.size());
+      ev.side = decode_side(m.side);
+      ev.qty = static_cast<std::uint32_t>(parse_ascii_u64(m.shares.data(), m.shares.size()));
+      copy_symbol(ev.symbol, m.symbol.data(), m.symbol.size());
+      ev.price = parse_price_4dp(m.price.data());
+      ev.match_id = parse_base36_u64(m.execution_id.data(), m.execution_id.size());
+      return ev;
+    }
+    case '2': {
+      if (!require_exact(sizeof(TradeExtendedMessage))) return std::nullopt;
+      TradeExtendedMessage m{};
+      std::memcpy(&m, payload.data(), sizeof(m));
+      ev.type = mf::core::EventType::Trade;
+      ev.exchange_ts_ns = ts_ms_to_ns(m.timestamp_ms.data());
+      ev.order_id = parse_base36_u64(m.order_id.data(), m.order_id.size());
+      ev.side = decode_side(m.side);
+      ev.qty = static_cast<std::uint32_t>(parse_ascii_u64(m.shares.data(), m.shares.size()));
+      copy_symbol(ev.symbol, m.symbol.data(), m.symbol.size());
+      ev.price = parse_long_price_6dp_to_4dp(m.price_long.data());
+      ev.match_id = parse_base36_u64(m.execution_id.data(), m.execution_id.size());
       return ev;
     }
     default:
