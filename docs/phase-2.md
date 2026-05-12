@@ -34,6 +34,16 @@
 - Output artifact is saved under:
   - `artifacts/perf/phase2_pipeline_bench_YYYYMMDD_HHMMSS.txt`
 
+## One-Shot Evidence Collection (WSL)
+- Run all key Phase 2 evidence steps in one command:
+  - `bash scripts/run_phase2_evidence_wsl.sh <nasdaq_raw> <iex_pcap> [cboe_file] [out_dir]`
+- Default output:
+  - `artifacts/perf/phase2_evidence_YYYYMMDD_HHMMSS.txt`
+- Includes:
+  - NASDAQ raw ITCH adapter validation (`--nasdaq-raw-itch`)
+  - Phase 2 merge + JIT bridge counters (`--phase2-merge-jit`)
+  - Phase 2 synthetic pipeline benchmark (`phase2_pipeline_bench`)
+
 ## Known External Constraints (Not Framework Gaps)
 - NASDAQ historical sample framing/container compatibility is dataset-dependent.
 - Cboe full historical replay validation remains dependent on licensed sample availability.

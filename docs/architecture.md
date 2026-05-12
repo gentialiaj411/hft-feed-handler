@@ -51,6 +51,7 @@
 - Deterministic merge ordering is covered by a dedicated unit-style CRC invariance test (`test_phase2_determinism_crc`) that compares multiple arrival permutations of the same logical event set.
 - `phase1_parser_validate` also has `--phase2-merge-jit ...` mode, which drains merged events into a JIT bridge publisher backed by an SPSC ring and reports publish/drop counters.
 - Dedicated benchmark binary exists: `phase2_pipeline_bench` (with helper script `scripts/bench_phase2_pipeline.ps1`).
+- End-to-end evidence runner exists for Linux/WSL2: `scripts/run_phase2_evidence_wsl.sh`.
 
 ## Latency budget (laptop-bound target)
 - Parse/decode: 35-80 ns
