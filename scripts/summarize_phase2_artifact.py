@@ -15,14 +15,34 @@ KEYS = [
     "dropped_duplicate_or_old",
     "buffered_out_of_order",
     "dropped_gap_too_large",
+    "dropped_gap_too_large_pending_evicted",
     "recovery_requests",
     "recovery_reinjected",
     "merged_crc32",
     "phase2_tests",
+    "baseline_crc32",
+    "raced_crc32",
+    "crc_match",
+    "drop_rate_a",
+    "drop_rate_b",
+    "drop_seed",
+    "complementary_drops",
+    "dropped_a",
+    "dropped_b",
+    "arb_accepted",
+    "arb_accepted_a",
+    "arb_accepted_b",
+    "arb_duplicate_or_old",
+    "arb_gap_buffered",
+    "arb_gap_too_large",
+    "pipe_accepted",
+    "pipe_dropped_gap_too_large",
+    "pipe_recovery_requests",
 ]
 
 
 def parse_lines(text: str) -> dict[str, str]:
+    text = text.replace("\x00", "")
     out: dict[str, str] = {}
     for line in text.splitlines():
         if "=" not in line:

@@ -4,6 +4,7 @@ project(MultiFeed LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/FS>)
 
 option(MF_ENABLE_FUZZ "Enable libFuzzer targets" OFF)
 option(MF_STRICT_WARNINGS "Treat warnings as errors for local/CI hardening" OFF)
@@ -31,7 +32,7 @@ target_include_directories(multifeed_core PUBLIC include)
 
 target_compile_options(multifeed_core PRIVATE
     $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>
-    $<$<CXX_COMPILER_ID:MSVC>:/W4>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /FS>
     $<$<AND:$<BOOL:${MF_STRICT_WARNINGS}>,$<CXX_COMPILER_ID:GNU,Clang>>:-Werror>
     $<$<AND:$<BOOL:${MF_STRICT_WARNINGS}>,$<CXX_COMPILER_ID:MSVC>>:/WX>
 )
@@ -41,6 +42,9 @@ target_link_libraries(phase1_parser_validate PRIVATE multifeed_core)
 
 add_executable(phase2_pipeline_bench src/apps/phase2_pipeline_bench_main.cpp)
 target_link_libraries(phase2_pipeline_bench PRIVATE multifeed_core)
+
+add_executable(phase2_ab_evidence src/apps/phase2_ab_evidence_main.cpp)
+target_link_libraries(phase2_ab_evidence PRIVATE multifeed_core)
 
 add_executable(test_iex_deep_parser tests/test_iex_deep_parser.cpp)
 target_link_libraries(test_iex_deep_parser PRIVATE multifeed_core)

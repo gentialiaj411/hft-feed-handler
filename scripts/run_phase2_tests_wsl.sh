@@ -21,6 +21,9 @@ cmake --build build -j
   ./build/test_phase2_determinism_crc
   ./build/test_phase2_pipeline
   ./build/test_phase2_jit_bridge
+  ./build/test_phase2_ab_arbiter
+  ./build/test_phase3_feature_bridge
+  python3 scripts/validate_feature_math.py
   echo "phase2_tests=PASS"
 } | tee "${OUT_FILE}"
 

@@ -1,93 +1,74 @@
-# High-Performance Market Data Handler
+# MultiFeed — Multi-Venue HFT Market Data Handler
 
-A production-quality market data feed handler designed for high-frequency trading systems. Processes UDP multicast market data with lock-free architecture, zero-copy parsing, and comprehensive performance monitoring. Demonstrates enterprise-grade low-latency engineering with real-world production considerations.
+MultiFeed is a C++20 portfolio project that models a production-style market data pipeline across three venues without using live feeds. It focuses on deterministic replay, recovery behavior, and microstructure feature extraction under high-throughput constraints.
 
-## Architecture Overview
+## Architecture
 
+```text
+[ITCH 5.0 / IEX DEEP+ / Cboe PITCH parsers]
+                    ->
+[Phase 2: det. merge + gap recovery + A/B arbiter]
+                    ->
+[Phase 3: order book + NBBO + feature engine]
+                    ->
+[SPSCRingBuffer<FeatureVector>]
 ```
-[UDP Multicast Socket] --(batched recv)--> [Lock-Free SPSC Ring Buffer] --(zero-copy)--> [Message Parser] --> [Order Book Engine]
-                                                         ↓
-                                                [Real-Time Statistics] --> [Latency Histograms]
-```
 
-## Technical Implementation
+## Technical Highlights
 
-### Lock-Free Design
-- **Single-Producer Single-Consumer (SPSC) Ring Buffer**: Cache-aligned circular buffer using atomic operations with release-acquire memory ordering
-- **Wait-Free Operations**: No mutexes, locks, or system calls in the hot path
-- **Power-of-Two Sizing**: Optimized for efficient modulo operations and cache alignment
-- **False Sharing Prevention**: 64-byte alignment for all performance-critical structures
+- 3-venue binary protocol parsing: NASDAQ ITCH 5.0, IEX DEEP+, and Cboe PITCH.
+- Deterministic merge sort keyed on `(exchange_ts_ns, venue, sequence, raw_type)` with CRC32 invariance checks.
+- Per-venue sequence tracking with bounded gap buffering and `force_advance` on `GapTooLarge`.
+- A/B dual-feed arbitration with configurable drop injection and CRC comparison.
+- Per-symbol order book with L1 aggregation feeding NBBO consolidation.
+- Six microstructure features:
+  - microprice
+  - OFI rolling window
+  - queue-ahead estimation
+  - effective spread EMA
+  - Kyle's lambda online OLS
+  - VPIN
+- Lock-free `SPSCRingBuffer` with cache-line-separated atomics.
+- `libFuzzer` targets for all three parsers.
 
-### Zero-Copy Message Processing
-- **Direct Buffer Access**: Messages parsed directly from network receive buffers
-- **Type-Safe Casting**: Compile-time validation with runtime length checks
-- **Efficient Deserialization**: No heap allocations in message processing pipeline
-- **SIMD-Ready Layout**: Data structures optimized for potential vectorization
+## Build (Linux/WSL2)
 
-### Network Layer
-- **UDP Multicast**: Efficient one-to-many distribution with proper IGMP group management
-- **Non-Blocking I/O**: Event-driven network processing with configurable buffer sizes
-- **Connection Resilience**: Automatic recovery from network interruptions
-- **Platform Abstraction**: Cross-platform socket handling (Windows/Linux/macOS)
-
-### Order Book Engine
-- **Real-Time Updates**: Bid/ask price tracking with automatic spread calculation
-- **Symbol Filtering**: Configurable symbol watching for focused analysis
-- **Thread-Safe Operations**: Lock-free updates with atomic price tracking
-- **Memory Efficient**: Compact representation with minimal overhead
-
-### Performance Monitoring
-- **Latency Statistics**: P50/P95/P99/P99.9 percentile tracking with histogram generation
-- **Throughput Metrics**: Real-time message rate calculation with efficiency reporting
-- **Sequence Validation**: Gap detection and recovery for data integrity
-- **Resource Monitoring**: CPU, memory, and network utilization tracking
-
-## Build System
-
-### Linux/macOS
 ```bash
-cd market-data-handler
-make all
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
 ```
 
-### Windows
-```powershell
-cd market-data-handler
-.\build_windows.cmd
-```
+## Test & CI
 
-## Usage Examples
+GitHub Actions workflow: `phase2-linux.yml`
 
-### Basic Operation
+Pipeline stages:
+- build
+- unit tests
+- bench snapshot
+- determinism regression
+- A/B evidence (independent + complementary)
+
+Local WSL2 test run:
+
 ```bash
-# Start market data feed simulator
-./feed_simulator --multicast 239.255.0.1 --port 5000 --rate 1000000 --symbols 200 --duration 30
-
-# Start market data handler (in another terminal)
-./market_handler --multicast 239.255.0.1 --port 5000 --symbols 1000,1001 --duration 30
+bash scripts/run_phase2_tests_wsl.sh
 ```
 
-### Advanced Configuration
-```bash
-# High-throughput testing
-./feed_simulator --rate 2000000 --symbols 500 --duration 60
+## Validation Scripts
 
-# Focused symbol monitoring
-./market_handler --symbols 1000,1001,1002,1005 --duration 300
+- `scripts/validate_feature_math.py`: independent Python math harness for all 6 feature formulas with 14 checks.
+- `scripts/summarize_phase2_artifact.py`: summarize phase2 artifact output.
+- `scripts/generate_phase2_report.py`: generate consolidated phase2 evidence reports.
 
-# Benchmarking with custom multicast group
-./market_handler --multicast 239.255.1.100 --port 6000 --duration 30
-```
+## Key Design Decisions
+
+- CRC32 is used as a compact determinism witness so large replay outputs can be compared quickly and reproducibly across runs.
+- Gap recovery uses a bounded deque store to cap memory growth while preserving near-term out-of-order recovery opportunity.
+- `force_advance` on `GapTooLarge` prevents venue progress deadlock and keeps the merged timeline moving under sustained loss.
 
 ## Performance Evidence
 
-This repository does not ship fixed benchmark claims in source because results depend on hardware, OS, dataset, and runtime configuration.
+Do not rely on fixed benchmark claims in source control.
 
-Use the built-in evidence workflows:
-
-- Linux/WSL2 benchmark:
-  - `bash scripts/bench_phase2_pipeline_wsl.sh 2000000 256 1048576`
-- Linux/WSL2 tests + benchmark artifact bundle:
-  - `bash scripts/run_phase2_evidence_wsl.sh <nasdaq_raw> <iex_pcap> [cboe_file] [out_dir]`
-- Summarize an artifact:
-  - `python3 scripts/summarize_phase2_artifact.py artifacts/perf/<artifact_file>.txt`
+Run `bash scripts/bench_phase2_pipeline_wsl.sh` on a pinned core to produce real p50/p99/p99.9 numbers.
