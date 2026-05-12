@@ -26,7 +26,10 @@ struct FeatureBridgeStats {
 
 class FeatureBridge final : public mf::phase2::IMergedEventSink {
  public:
-  explicit FeatureBridge(IFeaturePublisher* publisher, FeaturePipeline::Config cfg = FeaturePipeline::Config{})
+  explicit FeatureBridge(IFeaturePublisher* publisher)
+      : publisher_(publisher), features_() {}
+
+  explicit FeatureBridge(IFeaturePublisher* publisher, FeaturePipeline::Config cfg)
       : publisher_(publisher), features_(cfg) {}
 
   void on_merged_event(const mf::core::BookEvent& ev) noexcept override;
