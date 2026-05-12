@@ -12,11 +12,16 @@ add_library(multifeed_core
     src/core/crc32.cpp
     src/core/time.cpp
     src/phase2/deterministic_merger.cpp
+    src/phase2/ab_arbiter.cpp
     src/phase2/jit_bridge.cpp
     src/phase2/pipeline.cpp
     src/phase2/recovery.cpp
     src/phase2/recovery_simulator.cpp
     src/phase2/sequence_tracker.cpp
+    src/phase3/order_book_engine.cpp
+    src/phase3/nbbo_consolidator.cpp
+    src/phase3/feature_pipeline.cpp
+    src/phase3/feature_bridge.cpp
     src/proto/nasdaq/itch50_parser.cpp
     src/proto/iex/deep_parser.cpp
     src/proto/cboe/pitch_parser.cpp
@@ -27,8 +32,8 @@ target_include_directories(multifeed_core PUBLIC include)
 target_compile_options(multifeed_core PRIVATE
     $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>
     $<$<CXX_COMPILER_ID:MSVC>:/W4>
-    $<$<AND:$<BOOL:MF_STRICT_WARNINGS>,$<CXX_COMPILER_ID:GNU,Clang>>:-Werror>
-    $<$<AND:$<BOOL:MF_STRICT_WARNINGS>,$<CXX_COMPILER_ID:MSVC>>:/WX>
+    $<$<AND:$<BOOL:${MF_STRICT_WARNINGS}>,$<CXX_COMPILER_ID:GNU,Clang>>:-Werror>
+    $<$<AND:$<BOOL:${MF_STRICT_WARNINGS}>,$<CXX_COMPILER_ID:MSVC>>:/WX>
 )
 
 add_executable(phase1_parser_validate src/apps/phase1_parser_validate_main.cpp)
@@ -60,6 +65,12 @@ target_link_libraries(test_phase2_pipeline PRIVATE multifeed_core)
 
 add_executable(test_phase2_jit_bridge tests/test_phase2_jit_bridge.cpp)
 target_link_libraries(test_phase2_jit_bridge PRIVATE multifeed_core)
+
+add_executable(test_phase2_ab_arbiter tests/test_phase2_ab_arbiter.cpp)
+target_link_libraries(test_phase2_ab_arbiter PRIVATE multifeed_core)
+
+add_executable(test_phase3_feature_bridge tests/test_phase3_feature_bridge.cpp)
+target_link_libraries(test_phase3_feature_bridge PRIVATE multifeed_core)
 
 if(MF_ENABLE_FUZZ)
   add_executable(fuzz_nasdaq_parser tests/fuzz/fuzz_nasdaq_parser.cpp)

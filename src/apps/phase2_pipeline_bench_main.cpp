@@ -113,6 +113,7 @@ int main(int argc, char** argv) {
   std::cout << "dropped_duplicate_or_old=" << s.dropped_duplicate_or_old << "\n";
   std::cout << "buffered_out_of_order=" << s.buffered_out_of_order << "\n";
   std::cout << "dropped_gap_too_large=" << s.dropped_gap_too_large << "\n";
+  std::cout << "dropped_gap_too_large_pending_evicted=" << s.dropped_gap_too_large_pending_evicted << "\n";
   std::cout << "recovery_requests=" << s.recovery_requests << "\n";
   std::cout << "recovery_reinjected=" << s.recovery_reinjected << "\n";
   std::cout << "merged_crc32=0x" << std::hex << std::setw(8) << std::setfill('0') << s.merged_crc << std::dec << "\n";

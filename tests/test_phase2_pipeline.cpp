@@ -39,10 +39,15 @@ void test_out_of_order_then_recovery_reinject() {
 void test_gap_too_large_drop() {
   mf::phase2::Pipeline pipeline(/*gap_window=*/1, /*per_venue_capacity=*/64);
   pipeline.on_event(make_event(mf::core::Venue::Iex, 1, 2000));
+  pipeline.on_event(make_event(mf::core::Venue::Iex, 3, 2003));
   pipeline.on_event(make_event(mf::core::Venue::Iex, 10, 2010));
+  pipeline.on_event(make_event(mf::core::Venue::Iex, 10, 2010));
+  pipeline.on_event(make_event(mf::core::Venue::Iex, 11, 2011));
   pipeline.finalize();
   const auto& s = pipeline.stats();
   assert(s.dropped_gap_too_large == 1);
+  assert(s.dropped_gap_too_large_pending_evicted == 1);
+  assert(s.accepted == 3);
 }
 
 void test_publish_overflow_counted() {

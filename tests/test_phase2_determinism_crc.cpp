@@ -6,22 +6,11 @@
 #include <iostream>
 #include <vector>
 
-#include "mf/core/crc32.hpp"
+#include "mf/core/book_event_crc.hpp"
 #include "mf/core/types.hpp"
 #include "mf/phase2/deterministic_merger.hpp"
 
 namespace {
-
-void update_crc_from_event(std::uint32_t& crc, const mf::core::BookEvent& ev) {
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.venue), sizeof(ev.venue));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.type), sizeof(ev.type));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.sequence), sizeof(ev.sequence));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.exchange_ts_ns), sizeof(ev.exchange_ts_ns));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.symbol), sizeof(ev.symbol));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.order_id), sizeof(ev.order_id));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.qty), sizeof(ev.qty));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.price), sizeof(ev.price));
-}
 
 mf::core::BookEvent make_event(
     mf::core::Venue venue,
@@ -55,7 +44,7 @@ std::uint32_t merged_crc_for_order(const std::vector<mf::core::BookEvent>& in) {
     if (++guard > in.size() + 8) {
       return 0;
     }
-    update_crc_from_event(crc, out);
+    mf::core::update_crc_from_book_event(crc, out);
   }
   return crc;
 }

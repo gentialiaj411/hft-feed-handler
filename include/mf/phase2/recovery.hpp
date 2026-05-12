@@ -37,6 +37,8 @@ class GapAwareSequencer {
 
   [[nodiscard]] SequencerResult on_sequence(mf::core::Venue venue, std::uint64_t seq) noexcept;
   void set_recovery_handler(IRecoveryHandler* handler) noexcept { recovery_handler_ = handler; }
+  void force_advance(mf::core::Venue venue, std::uint64_t new_next) noexcept;
+  [[nodiscard]] std::uint64_t next_expected(mf::core::Venue venue) const noexcept;
 
  private:
   MultiVenueSequenceTracker trackers_;

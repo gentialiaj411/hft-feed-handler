@@ -1,24 +1,15 @@
 #include "mf/phase2/pipeline.hpp"
 
-#include "mf/core/crc32.hpp"
+#include "mf/core/book_event_crc.hpp"
+#include <cassert>
 
 namespace mf::phase2 {
 
-namespace {
-void update_crc_from_event(std::uint32_t& crc, const mf::core::BookEvent& ev) {
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.venue), sizeof(ev.venue));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.type), sizeof(ev.type));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.sequence), sizeof(ev.sequence));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.exchange_ts_ns), sizeof(ev.exchange_ts_ns));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.symbol), sizeof(ev.symbol));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.order_id), sizeof(ev.order_id));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.qty), sizeof(ev.qty));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.price), sizeof(ev.price));
-}
-}  // namespace
-
 Pipeline::Pipeline(std::uint64_t gap_window, std::size_t per_venue_capacity)
-    : recovery_sim_(&recovery_store_), sequencer_(gap_window), merger_(per_venue_capacity) {
+    : recovery_store_(static_cast<std::size_t>(gap_window + kRecoveryLookbackSlack)),
+      recovery_sim_(&recovery_store_),
+      sequencer_(gap_window),
+      merger_(per_venue_capacity) {
   sequencer_.set_recovery_handler(&recovery_sim_);
 }
 
@@ -38,13 +29,20 @@ void Pipeline::finalize(IMergedEventSink* sink) {
     if (sink != nullptr) {
       sink->on_merged_event(ev);
     }
-    update_crc_from_event(stats_.merged_crc, ev);
+    mf::core::update_crc_from_book_event(stats_.merged_crc, ev);
   }
   stats_.recovery_requests = recovery_sim_.requests_total();
 }
 
 std::size_t Pipeline::venue_index(mf::core::Venue venue) noexcept {
-  return static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
+  const std::size_t idx = static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
+  assert(idx < 3);
+  return idx;
+}
+
+void Pipeline::evict_pending_before(mf::core::Venue venue, std::uint64_t seq) {
+  auto& pending = pending_by_venue_[venue_index(venue)];
+  pending.erase(pending.begin(), pending.lower_bound(seq));
 }
 
 void Pipeline::process_event(const mf::core::BookEvent& ev) {
@@ -56,6 +54,15 @@ void Pipeline::process_event(const mf::core::BookEvent& ev) {
   }
   if (result.update.status == SequenceStatus::GapTooLarge) {
     ++stats_.dropped_gap_too_large;
+    sequencer_.force_advance(ev.venue, ev.sequence);
+    auto& pending = pending_by_venue_[venue_index(ev.venue)];
+    const auto before = pending.size();
+    evict_pending_before(ev.venue, ev.sequence);
+    stats_.dropped_gap_too_large_pending_evicted += (before - pending.size());
+    const std::uint64_t next = sequencer_.next_expected(ev.venue);
+    if (next > kRecoveryLookbackSlack) {
+      recovery_store_.evict_before(ev.venue, next - kRecoveryLookbackSlack);
+    }
     return;
   }
 
@@ -73,12 +80,19 @@ void Pipeline::process_event(const mf::core::BookEvent& ev) {
     while (to_release > 0) {
       auto it = pending.find(seq);
       if (it == pending.end()) {
-        break;
+        ++stats_.pending_inconsistency;
+        ++seq;
+        --to_release;
+        continue;
       }
       publish(it->second);
       pending.erase(it);
       ++seq;
       --to_release;
+    }
+    const std::uint64_t next = sequencer_.next_expected(ev.venue);
+    if (next > kRecoveryLookbackSlack) {
+      recovery_store_.evict_before(ev.venue, next - kRecoveryLookbackSlack);
     }
   }
 }

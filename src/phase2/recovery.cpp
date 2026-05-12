@@ -24,4 +24,12 @@ SequencerResult GapAwareSequencer::on_sequence(mf::core::Venue venue, std::uint6
   return out;
 }
 
+void GapAwareSequencer::force_advance(mf::core::Venue venue, std::uint64_t new_next) noexcept {
+  trackers_.force_advance(venue, new_next);
+}
+
+std::uint64_t GapAwareSequencer::next_expected(mf::core::Venue venue) const noexcept {
+  return trackers_.tracker_for(venue).next_expected();
+}
+
 }  // namespace mf::phase2

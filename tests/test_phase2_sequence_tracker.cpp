@@ -60,6 +60,18 @@ void test_duplicate_and_too_far() {
   assert(tracker.next_expected() == 2);
 }
 
+void test_force_advance_recovers_after_gap_too_large() {
+  mf::phase2::SequenceTracker tracker(2);
+  (void)tracker.on_sequence(1);
+  const auto far = tracker.on_sequence(5);
+  assert(far.status == mf::phase2::SequenceStatus::GapTooLarge);
+  tracker.force_advance(5);
+
+  const auto recovered = tracker.on_sequence(5);
+  assert(recovered.status == mf::phase2::SequenceStatus::InOrder);
+  assert(tracker.next_expected() == 6);
+}
+
 void test_per_venue_independent_state() {
   mf::phase2::MultiVenueSequenceTracker multi(4);
 
@@ -80,6 +92,7 @@ int main() {
   test_in_order_release();
   test_gap_buffer_then_fill();
   test_duplicate_and_too_far();
+  test_force_advance_recovers_after_gap_too_large();
   test_per_venue_independent_state();
   return 0;
 }

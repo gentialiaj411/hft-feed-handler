@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 
 namespace mf::phase2 {
 
@@ -12,6 +13,7 @@ constexpr std::array<mf::core::Venue, 3> kTrackedVenues = {
     mf::core::Venue::Iex,
     mf::core::Venue::Cboe,
 };
+static_assert(static_cast<std::uint8_t>(mf::core::Venue::Cboe) == 2, "Venue enum/layout drifted.");
 }  // namespace
 
 SequenceTracker::SequenceTracker(std::uint64_t gap_window)
@@ -75,6 +77,24 @@ SequenceUpdate SequenceTracker::on_sequence(std::uint64_t seq) noexcept {
   return out;
 }
 
+void SequenceTracker::force_advance(std::uint64_t new_next) noexcept {
+  if (new_next <= next_expected_) {
+    return;
+  }
+  const std::uint64_t span = new_next - next_expected_;
+  if (span >= buffered_tags_.size()) {
+    std::fill(buffered_tags_.begin(), buffered_tags_.end(), 0);
+  } else {
+    for (std::uint64_t s = next_expected_; s < new_next; ++s) {
+      const std::size_t slot = static_cast<std::size_t>(s % buffered_tags_.size());
+      if (buffered_tags_[slot] == s) {
+        buffered_tags_[slot] = 0;
+      }
+    }
+  }
+  next_expected_ = new_next;
+}
+
 MultiVenueSequenceTracker::MultiVenueSequenceTracker(std::uint64_t gap_window) {
   trackers_.reserve(kTrackedVenues.size());
   for (std::size_t i = 0; i < kTrackedVenues.size(); ++i) {
@@ -83,16 +103,17 @@ MultiVenueSequenceTracker::MultiVenueSequenceTracker(std::uint64_t gap_window) {
 }
 
 std::size_t MultiVenueSequenceTracker::index_for(mf::core::Venue venue) const noexcept {
-  for (std::size_t i = 0; i < kTrackedVenues.size(); ++i) {
-    if (kTrackedVenues[i] == venue) {
-      return i;
-    }
-  }
-  return 0;
+  const std::size_t idx = static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
+  assert(idx < trackers_.size());
+  return idx;
 }
 
 SequenceUpdate MultiVenueSequenceTracker::on_sequence(mf::core::Venue venue, std::uint64_t seq) noexcept {
   return trackers_[index_for(venue)].on_sequence(seq);
+}
+
+void MultiVenueSequenceTracker::force_advance(mf::core::Venue venue, std::uint64_t new_next) noexcept {
+  trackers_[index_for(venue)].force_advance(new_next);
 }
 
 const SequenceTracker& MultiVenueSequenceTracker::tracker_for(mf::core::Venue venue) const noexcept {

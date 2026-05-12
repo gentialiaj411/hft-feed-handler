@@ -35,6 +35,7 @@ class SequenceTracker {
   explicit SequenceTracker(std::uint64_t gap_window);
 
   [[nodiscard]] SequenceUpdate on_sequence(std::uint64_t seq) noexcept;
+  void force_advance(std::uint64_t new_next) noexcept;
   [[nodiscard]] std::uint64_t next_expected() const noexcept { return next_expected_; }
   [[nodiscard]] std::uint64_t gap_window() const noexcept { return gap_window_; }
 
@@ -52,6 +53,7 @@ class MultiVenueSequenceTracker {
   explicit MultiVenueSequenceTracker(std::uint64_t gap_window);
 
   [[nodiscard]] SequenceUpdate on_sequence(mf::core::Venue venue, std::uint64_t seq) noexcept;
+  void force_advance(mf::core::Venue venue, std::uint64_t new_next) noexcept;
   [[nodiscard]] const SequenceTracker& tracker_for(mf::core::Venue venue) const noexcept;
 
  private:

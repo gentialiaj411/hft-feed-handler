@@ -1,6 +1,7 @@
 #include "mf/phase2/deterministic_merger.hpp"
 
 #include <array>
+#include <cassert>
 
 namespace mf::phase2 {
 
@@ -10,15 +11,13 @@ constexpr std::array<mf::core::Venue, 3> kTrackedVenues = {
     mf::core::Venue::Iex,
     mf::core::Venue::Cboe,
 };
+static_assert(static_cast<std::uint8_t>(mf::core::Venue::Cboe) == 2, "Venue enum/layout drifted.");
 }
 
 std::size_t DeterministicMerger::index_for(mf::core::Venue venue) noexcept {
-  for (std::size_t i = 0; i < kTrackedVenues.size(); ++i) {
-    if (kTrackedVenues[i] == venue) {
-      return i;
-    }
-  }
-  return 0;
+  const std::size_t idx = static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
+  assert(idx < kTrackedVenues.size());
+  return idx;
 }
 
 bool DeterministicMerger::less_event(const mf::core::BookEvent& a, const mf::core::BookEvent& b) noexcept {

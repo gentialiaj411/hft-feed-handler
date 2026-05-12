@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include "mf/core/spsc_ring.hpp"
@@ -22,6 +23,8 @@ struct JitSignalEvent {
   std::uint32_t qty{0};
   std::uint32_t price{0};
 };
+static_assert(sizeof(JitSignalEvent) == 64, "JitSignalEvent layout changed; update JIT schema version");
+static_assert(offsetof(JitSignalEvent, sequence) == 8, "JitSignalEvent field offset drift");
 
 class IJitPublisher {
  public:

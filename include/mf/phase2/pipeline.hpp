@@ -24,6 +24,8 @@ struct PipelineStats {
   std::uint64_t dropped_duplicate_or_old{0};
   std::uint64_t buffered_out_of_order{0};
   std::uint64_t dropped_gap_too_large{0};
+  std::uint64_t dropped_gap_too_large_pending_evicted{0};
+  std::uint64_t pending_inconsistency{0};
   std::uint64_t recovery_requests{0};
   std::uint64_t recovery_reinjected{0};
   std::uint32_t merged_crc{0};
@@ -31,6 +33,8 @@ struct PipelineStats {
 
 class Pipeline {
  public:
+  static constexpr std::uint64_t kRecoveryLookbackSlack = 64U;
+
   Pipeline(std::uint64_t gap_window, std::size_t per_venue_capacity);
 
   void on_event(const mf::core::BookEvent& ev);
@@ -39,6 +43,7 @@ class Pipeline {
 
  private:
   static std::size_t venue_index(mf::core::Venue venue) noexcept;
+  void evict_pending_before(mf::core::Venue venue, std::uint64_t seq);
   void process_event(const mf::core::BookEvent& ev);
   void publish(const mf::core::BookEvent& ev);
 

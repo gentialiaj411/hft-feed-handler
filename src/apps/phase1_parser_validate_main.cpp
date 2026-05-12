@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "mf/core/crc32.hpp"
+#include "mf/core/book_event_crc.hpp"
 #include "mf/core/spsc_ring.hpp"
 #include "mf/core/time.hpp"
 #include "mf/phase2/jit_bridge.hpp"
@@ -55,17 +55,6 @@ bool looks_like_text_csv(const std::string& path) {
   return printable_ratio > 0.95 && commas > 10 && newlines > 5;
 }
 
-void update_crc_from_event(std::uint32_t& crc, const mf::core::BookEvent& ev) {
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.venue), sizeof(ev.venue));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.type), sizeof(ev.type));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.sequence), sizeof(ev.sequence));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.exchange_ts_ns), sizeof(ev.exchange_ts_ns));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.symbol), sizeof(ev.symbol));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.order_id), sizeof(ev.order_id));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.qty), sizeof(ev.qty));
-  crc = mf::core::crc32_update(crc, reinterpret_cast<const std::byte*>(&ev.price), sizeof(ev.price));
-}
-
 template <typename ParserT, typename StatsT>
 RunSummary run_framed_file(const std::string& path, ParserT& parser, StatsT& stats, const char* venue_name) {
   std::ifstream in(path, std::ios::binary);
@@ -99,7 +88,7 @@ RunSummary run_framed_file(const std::string& path, ParserT& parser, StatsT& sta
 
     if (ev.has_value()) {
       ++summary.parsed;
-      update_crc_from_event(summary.crc, *ev);
+      mf::core::update_crc_from_book_event(summary.crc, *ev);
     }
   }
 
@@ -144,8 +133,7 @@ RunSummary run_nasdaq_raw_itch_file(const std::string& path, mf::proto::nasdaq::
 
     const std::size_t msg_len = nasdaq_itch_wire_len(type);
     if (msg_len == 0U) {
-      ++summary.malformed;
-      continue;
+      throw std::runtime_error("unknown Nasdaq ITCH type byte encountered: " + std::to_string(static_cast<unsigned char>(type)));
     }
 
     std::vector<std::byte> msg(msg_len);
@@ -162,7 +150,7 @@ RunSummary run_nasdaq_raw_itch_file(const std::string& path, mf::proto::nasdaq::
         stats);
     if (ev.has_value()) {
       ++summary.parsed;
-      update_crc_from_event(summary.crc, *ev);
+      mf::core::update_crc_from_book_event(summary.crc, *ev);
     }
   }
 
@@ -205,6 +193,10 @@ RunSummary run_iex_pcap_file(const std::string& path, IexParserT& parser, IexSta
                                    (static_cast<std::uint32_t>(ph[10]) << 16U) |
                                    (static_cast<std::uint32_t>(ph[11]) << 24U);
     if (incl_len == 0U) {
+      ++summary.malformed;
+      continue;
+    }
+    if (incl_len > 65535U) {
       ++summary.malformed;
       continue;
     }
@@ -271,7 +263,7 @@ RunSummary run_iex_pcap_file(const std::string& path, IexParserT& parser, IexSta
           stats);
       if (ev.has_value()) {
         ++summary.parsed;
-        update_crc_from_event(summary.crc, *ev);
+        mf::core::update_crc_from_book_event(summary.crc, *ev);
       }
       off += msg_len;
     }
@@ -335,7 +327,7 @@ RunSummary run_framed_file_phase2(
       continue;
     }
     ++summary.parsed;
-    update_crc_from_event(summary.crc, *ev);
+    mf::core::update_crc_from_book_event(summary.crc, *ev);
     pipeline.on_event(*ev);
   }
 
@@ -383,6 +375,10 @@ RunSummary run_iex_pcap_file_phase2(
       ++summary.malformed;
       continue;
     }
+    if (incl_len > 65535U) {
+      ++summary.malformed;
+      continue;
+    }
 
     std::vector<std::uint8_t> pkt(incl_len);
     if (!in.read(reinterpret_cast<char*>(pkt.data()), static_cast<std::streamsize>(incl_len))) {
@@ -426,7 +422,7 @@ RunSummary run_iex_pcap_file_phase2(
           stats);
       if (ev.has_value()) {
         ++summary.parsed;
-        update_crc_from_event(summary.crc, *ev);
+        mf::core::update_crc_from_book_event(summary.crc, *ev);
         pipeline.on_event(*ev);
       }
       off += msg_len;
@@ -515,6 +511,7 @@ int main(int argc, char** argv) {
       std::cout << "dropped_duplicate_or_old=" << phase2.dropped_duplicate_or_old << "\n";
       std::cout << "buffered_out_of_order=" << phase2.buffered_out_of_order << "\n";
       std::cout << "dropped_gap_too_large=" << phase2.dropped_gap_too_large << "\n";
+      std::cout << "dropped_gap_too_large_pending_evicted=" << phase2.dropped_gap_too_large_pending_evicted << "\n";
       std::cout << "recovery_requests=" << phase2.recovery_requests << "\n";
       std::cout << "recovery_reinjected=" << phase2.recovery_reinjected << "\n";
       std::cout << "merged_crc32=0x" << std::hex << std::setw(8) << std::setfill('0') << phase2.merged_crc << std::dec
@@ -582,6 +579,7 @@ int main(int argc, char** argv) {
       std::cout << "dropped_duplicate_or_old=" << phase2.dropped_duplicate_or_old << "\n";
       std::cout << "buffered_out_of_order=" << phase2.buffered_out_of_order << "\n";
       std::cout << "dropped_gap_too_large=" << phase2.dropped_gap_too_large << "\n";
+      std::cout << "dropped_gap_too_large_pending_evicted=" << phase2.dropped_gap_too_large_pending_evicted << "\n";
       std::cout << "recovery_requests=" << phase2.recovery_requests << "\n";
       std::cout << "recovery_reinjected=" << phase2.recovery_reinjected << "\n";
       std::cout << "merged_crc32=0x" << std::hex << std::setw(8) << std::setfill('0') << phase2.merged_crc << std::dec
