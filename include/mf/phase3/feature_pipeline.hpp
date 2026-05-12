@@ -18,7 +18,7 @@ class FeaturePipeline {
     std::size_t vpin_bucket_count{32};
   };
 
-  explicit FeaturePipeline(Config cfg = {}) : cfg_(cfg) {}
+  explicit FeaturePipeline(Config cfg = Config{}) : cfg_(cfg) {}
 
   [[nodiscard]] std::optional<FeatureVector> on_event(
       const mf::core::BookEvent& ev,
