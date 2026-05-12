@@ -54,6 +54,7 @@
 ## Repo Hygiene Guardrails
 - CI enforcement:
   - `.github/workflows/repo-hygiene.yml`
+  - `.github/workflows/phase2-linux.yml`
   - `scripts/check_repo_hygiene.ps1`
 - Optional local pre-commit hook install:
   - `powershell -ExecutionPolicy Bypass -File scripts/install_git_hooks.ps1`
@@ -61,3 +62,12 @@
 ## Known External Constraints (Not Framework Gaps)
 - NASDAQ historical sample framing/container compatibility is dataset-dependent.
 - Cboe full historical replay validation remains dependent on licensed sample availability.
+
+## Phase 2 Completion Checklist
+- [x] Sequence tracking + gap window logic
+- [x] Recovery abstraction + replay simulator
+- [x] Deterministic merged publication path
+- [x] JIT bridge sink integration path
+- [x] Dedicated benchmark harness
+- [x] WSL/Linux test + perf evidence runners
+- [x] Repo hygiene guardrails (CI + optional local hook)

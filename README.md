@@ -79,28 +79,15 @@ cd market-data-handler
 ./market_handler --multicast 239.255.1.100 --port 6000 --duration 30
 ```
 
-## Performance Benchmarks
+## Performance Evidence
 
-### End-to-End Throughput (Real-World Metrics)
-| Configuration | Throughput | CPU Usage | Memory Usage |
-|---------------|------------|-----------|--------------|
-| 500K msg/sec | 500K msg/sec (100%) | 15-25% | 45MB |
-| 1M msg/sec | 950K msg/sec (95%) | 35-45% | 65MB |
-| 2M msg/sec | 1.7M msg/sec (85%) | 65-75% | 85MB |
+This repository does not ship fixed benchmark claims in source because results depend on hardware, OS, dataset, and runtime configuration.
 
-### Latency Distribution (End-to-End)
-| Percentile | Latency | Notes |
-|------------|---------|-------|
-| Average | 800ns - 1.2μs | Network + processing |
-| P95 | 1.5μs - 2.5μs | Typical trading latency |
-| P99 | 2.8μs - 4.2μs | Worst-case performance |
-| P99.9 | 5.5μs - 8.0μs | Extreme outliers |
+Use the built-in evidence workflows:
 
-### Component-Level Performance
-| Component | Latency | Throughput |
-|-----------|---------|------------|
-| Ring Buffer (isolated) | 15-25ns | 40M+ msg/sec |
-| Message Parsing | 45-75ns | 15M+ msg/sec |
-| Order Book Update | 80-120ns | 10M+ msg/sec |
-| Network Receive | 500ns - 2μs | Hardware dependent |
-
+- Linux/WSL2 benchmark:
+  - `bash scripts/bench_phase2_pipeline_wsl.sh 2000000 256 1048576`
+- Linux/WSL2 tests + benchmark artifact bundle:
+  - `bash scripts/run_phase2_evidence_wsl.sh <nasdaq_raw> <iex_pcap> [cboe_file] [out_dir]`
+- Summarize an artifact:
+  - `python3 scripts/summarize_phase2_artifact.py artifacts/perf/<artifact_file>.txt`

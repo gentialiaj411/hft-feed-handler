@@ -1,0 +1,24 @@
+name: phase2-linux
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j
+      - name: Run Phase2 Tests
+        run: bash scripts/run_phase2_tests_wsl.sh artifacts/perf
+      - name: Run Phase2 Bench Snapshot
+        run: bash scripts/bench_phase2_pipeline_wsl.sh 200000 256 1048576 artifacts/perf
+      - name: Summarize Latest Bench
+        run: |
+          latest=$(ls -1t artifacts/perf/phase2_pipeline_bench_*.txt | head -n 1)
+          python3 scripts/summarize_phase2_artifact.py "$latest"
