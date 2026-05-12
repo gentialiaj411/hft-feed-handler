@@ -40,9 +40,16 @@
 - Default output:
   - `artifacts/perf/phase2_evidence_YYYYMMDD_HHMMSS.txt`
 - Includes:
+  - Phase 2 test suite execution and PASS stamp
   - NASDAQ raw ITCH adapter validation (`--nasdaq-raw-itch`)
   - Phase 2 merge + JIT bridge counters (`--phase2-merge-jit`)
   - Phase 2 synthetic pipeline benchmark (`phase2_pipeline_bench`)
+
+## WSL Test-Only Runner
+- Run just test evidence collection:
+  - `bash scripts/run_phase2_tests_wsl.sh [out_dir]`
+- Output artifact:
+  - `artifacts/perf/phase2_tests_YYYYMMDD_HHMMSS.txt`
 
 ## Repo Hygiene Guardrails
 - CI enforcement:

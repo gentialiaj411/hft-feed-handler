@@ -20,6 +20,17 @@ cmake --build build -j
   echo "iex_pcap=${IEX_PCAP}"
   echo "cboe_file=${CBOE_FILE:-<none>}"
   echo
+  echo "== phase2 tests =="
+  ./build/test_nasdaq_itch_parser
+  ./build/test_iex_deep_parser
+  ./build/test_phase2_sequence_tracker
+  ./build/test_phase2_recovery_merge
+  ./build/test_phase2_recovery_simulator
+  ./build/test_phase2_determinism_crc
+  ./build/test_phase2_pipeline
+  ./build/test_phase2_jit_bridge
+  echo "phase2_tests=PASS"
+  echo
   echo "== nasdaq raw itch =="
   ./build/phase1_parser_validate --nasdaq-raw-itch "${NASDAQ_RAW}"
   echo
