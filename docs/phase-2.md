@@ -44,6 +44,13 @@
   - Phase 2 merge + JIT bridge counters (`--phase2-merge-jit`)
   - Phase 2 synthetic pipeline benchmark (`phase2_pipeline_bench`)
 
+## Repo Hygiene Guardrails
+- CI enforcement:
+  - `.github/workflows/repo-hygiene.yml`
+  - `scripts/check_repo_hygiene.ps1`
+- Optional local pre-commit hook install:
+  - `powershell -ExecutionPolicy Bypass -File scripts/install_git_hooks.ps1`
+
 ## Known External Constraints (Not Framework Gaps)
 - NASDAQ historical sample framing/container compatibility is dataset-dependent.
 - Cboe full historical replay validation remains dependent on licensed sample availability.
