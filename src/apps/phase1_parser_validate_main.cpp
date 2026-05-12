@@ -15,6 +15,7 @@
 #include "mf/proto/cboe/pitch_parser.hpp"
 #include "mf/proto/iex/deep_parser.hpp"
 #include "mf/proto/nasdaq/itch50_parser.hpp"
+#include "mf/proto/nasdaq/itch50_messages.hpp"
 
 namespace {
 
@@ -96,6 +97,69 @@ RunSummary run_framed_file(const std::string& path, ParserT& parser, StatsT& sta
         mf::core::monotonic_raw_now_ns(),
         stats);
 
+    if (ev.has_value()) {
+      ++summary.parsed;
+      update_crc_from_event(summary.crc, *ev);
+    }
+  }
+
+  summary.malformed += stats.malformed_messages;
+  return summary;
+}
+
+std::size_t nasdaq_itch_wire_len(char type) {
+  using namespace mf::proto::nasdaq;
+  switch (type) {
+    case 'A': return sizeof(AddOrderMessage) + 1U;
+    case 'F': return sizeof(AddOrderMpidMessage) + 1U;
+    case 'E': return sizeof(OrderExecutedMessage) + 1U;
+    case 'C': return sizeof(OrderExecutedPriceMessage) + 1U;
+    case 'X': return sizeof(OrderCancelMessage) + 1U;
+    case 'D': return sizeof(OrderDeleteMessage) + 1U;
+    case 'U': return sizeof(OrderReplaceMessage) + 1U;
+    case 'P': return sizeof(TradeMessage) + 1U;
+    case 'Q': return sizeof(CrossTradeMessage) + 1U;
+    case 'I': return sizeof(NoiiMessage) + 1U;
+    case 'S': return sizeof(SystemEventMessage) + 1U;
+    case 'R': return sizeof(StockDirectoryMessage) + 1U;
+    default: return 0U;
+  }
+}
+
+template <typename StatsT>
+RunSummary run_nasdaq_raw_itch_file(const std::string& path, mf::proto::nasdaq::Itch50Parser& parser, StatsT& stats) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) {
+    throw std::runtime_error("failed to open nasdaq raw itch file: " + path);
+  }
+
+  RunSummary summary;
+  std::uint64_t seq = 1;
+
+  while (true) {
+    char type = '\0';
+    if (!in.read(&type, 1)) {
+      break;
+    }
+
+    const std::size_t msg_len = nasdaq_itch_wire_len(type);
+    if (msg_len == 0U) {
+      ++summary.malformed;
+      continue;
+    }
+
+    std::vector<std::byte> msg(msg_len);
+    msg[0] = static_cast<std::byte>(type);
+    if (!in.read(reinterpret_cast<char*>(msg.data() + 1), static_cast<std::streamsize>(msg_len - 1U))) {
+      break;
+    }
+
+    ++summary.frames;
+    auto ev = parser.parse_message(
+        std::span<const std::byte>(msg.data(), msg.size()),
+        seq++,
+        mf::core::monotonic_raw_now_ns(),
+        stats);
     if (ev.has_value()) {
       ++summary.parsed;
       update_crc_from_event(summary.crc, *ev);
@@ -376,6 +440,26 @@ RunSummary run_iex_pcap_file_phase2(
 }  // namespace
 
 int main(int argc, char** argv) {
+  if (argc == 3 && std::string(argv[1]) == "--nasdaq-raw-itch") {
+    try {
+      if (looks_like_text_csv(argv[2])) {
+        throw std::runtime_error("nasdaq input appears to be text/CSV, expected raw ITCH binary");
+      }
+      mf::proto::nasdaq::Itch50Parser nasdaq_parser;
+      mf::proto::nasdaq::ParseStats nasdaq_stats;
+      const RunSummary nasdaq = run_nasdaq_raw_itch_file(argv[2], nasdaq_parser, nasdaq_stats);
+      print_summary("nasdaq", nasdaq);
+      std::cout << "type_counts:\n";
+      print_type_counts(nasdaq_stats);
+      std::cout << "[combined]\n";
+      std::cout << "crc32_xor=0x" << std::hex << std::setw(8) << std::setfill('0') << nasdaq.crc << std::dec << "\n";
+      return 0;
+    } catch (const std::exception& ex) {
+      std::cerr << ex.what() << "\n";
+      return 1;
+    }
+  }
+
   if ((argc == 4 || argc == 5) && std::string(argv[1]) == "--phase2-merge-jit") {
     try {
       if (looks_like_text_csv(argv[2])) {
@@ -552,6 +636,7 @@ int main(int argc, char** argv) {
     std::cerr << "usage: phase1_parser_validate <nasdaq_itch_file> <iex_deep_file> [cboe_pitch_file]\n";
     std::cerr << "   or: phase1_parser_validate --phase2-merge <nasdaq_itch_file> <iex_pcap_file> [cboe_pitch_file]\n";
     std::cerr << "   or: phase1_parser_validate --phase2-merge-jit <nasdaq_itch_file> <iex_pcap_file> [cboe_pitch_file]\n";
+    std::cerr << "   or: phase1_parser_validate --nasdaq-raw-itch <nasdaq_raw_itch_file>\n";
     std::cerr << "   or: phase1_parser_validate --nasdaq-only <nasdaq_itch_file>\n";
     std::cerr << "   or: phase1_parser_validate --iex-only <iex_pcap_file>\n";
     return 2;
