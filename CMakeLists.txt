@@ -37,6 +37,9 @@ target_link_libraries(phase2_pipeline_bench PRIVATE multifeed_core)
 add_executable(test_iex_deep_parser tests/test_iex_deep_parser.cpp)
 target_link_libraries(test_iex_deep_parser PRIVATE multifeed_core)
 
+add_executable(test_nasdaq_itch_parser tests/test_nasdaq_itch_parser.cpp)
+target_link_libraries(test_nasdaq_itch_parser PRIVATE multifeed_core)
+
 add_executable(test_phase2_sequence_tracker tests/test_phase2_sequence_tracker.cpp)
 target_link_libraries(test_phase2_sequence_tracker PRIVATE multifeed_core)
 
