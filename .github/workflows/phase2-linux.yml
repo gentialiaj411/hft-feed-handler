@@ -18,7 +18,15 @@ jobs:
         run: bash scripts/run_phase2_tests_wsl.sh artifacts/perf
       - name: Run Phase2 Bench Snapshot
         run: bash scripts/bench_phase2_pipeline_wsl.sh 200000 256 1048576 artifacts/perf
+      - name: Run Phase2 Determinism Regression
+        run: bash scripts/check_phase2_determinism.sh 3 200000 256 1048576 artifacts/perf
       - name: Summarize Latest Bench
         run: |
           latest=$(ls -1t artifacts/perf/phase2_pipeline_bench_*.txt | head -n 1)
           python3 scripts/summarize_phase2_artifact.py "$latest"
+      - name: Upload Perf Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2-perf-artifacts
+          path: artifacts/perf/*.txt
+          if-no-files-found: error

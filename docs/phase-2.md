@@ -58,6 +58,10 @@
   - `scripts/check_repo_hygiene.ps1`
 - Optional local pre-commit hook install:
   - `powershell -ExecutionPolicy Bypass -File scripts/install_git_hooks.ps1`
+- Determinism regression script:
+  - `bash scripts/check_phase2_determinism.sh 3 200000 256 1048576`
+- Optional strict compile mode:
+  - `cmake -S . -B build -DMF_STRICT_WARNINGS=ON -DCMAKE_BUILD_TYPE=Release`
 
 ## Known External Constraints (Not Framework Gaps)
 - NASDAQ historical sample framing/container compatibility is dataset-dependent.

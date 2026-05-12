@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(MF_ENABLE_FUZZ "Enable libFuzzer targets" OFF)
+option(MF_STRICT_WARNINGS "Treat warnings as errors for local/CI hardening" OFF)
 
 add_library(multifeed_core
     src/core/crc32.cpp
@@ -26,6 +27,8 @@ target_include_directories(multifeed_core PUBLIC include)
 target_compile_options(multifeed_core PRIVATE
     $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>
     $<$<CXX_COMPILER_ID:MSVC>:/W4>
+    $<$<AND:$<BOOL:MF_STRICT_WARNINGS>,$<CXX_COMPILER_ID:GNU,Clang>>:-Werror>
+    $<$<AND:$<BOOL:MF_STRICT_WARNINGS>,$<CXX_COMPILER_ID:MSVC>>:/WX>
 )
 
 add_executable(phase1_parser_validate src/apps/phase1_parser_validate_main.cpp)
