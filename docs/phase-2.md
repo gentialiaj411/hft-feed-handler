@@ -1,0 +1,39 @@
+# Phase 2
+
+## Scope (Completed in Repo)
+- Per-venue sequence tracking (`mf::phase2::SequenceTracker`)
+- Gap detection + bounded buffering window logic
+- Recovery abstraction (`IRecoveryHandler`) + replay recovery simulator
+- Deterministic merged publication (`DeterministicMerger`)
+- Reusable Phase 2 pipeline (`mf::phase2::Pipeline`)
+- JIT bridge sink path (`JitBridge`) with SPSC ring publisher adapter
+- Dedicated benchmark harness (`phase2_pipeline_bench`)
+
+## Validation Commands
+- Build:
+  - `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release`
+  - `cmake --build build -j`
+- Unit-style tests:
+  - `./build/test_phase2_sequence_tracker`
+  - `./build/test_phase2_recovery_merge`
+  - `./build/test_phase2_recovery_simulator`
+  - `./build/test_phase2_determinism_crc`
+  - `./build/test_phase2_pipeline`
+  - `./build/test_phase2_jit_bridge`
+- Validator integration:
+  - `./build/phase1_parser_validate --phase2-merge <nasdaq_file> <iex_pcap_file> [cboe_file]`
+  - `./build/phase1_parser_validate --phase2-merge-jit <nasdaq_file> <iex_pcap_file> [cboe_file]`
+
+## NASDAQ Framing Adapter Path
+- Added raw ITCH mode for current sample mismatch triage:
+  - `./build/phase1_parser_validate --nasdaq-raw-itch <nasdaq_raw_itch_file>`
+
+## Linux/WSL2 Perf Evidence Workflow
+- Run reproducible benchmark on target platform:
+  - `bash scripts/bench_phase2_pipeline_wsl.sh 2000000 256 1048576`
+- Output artifact is saved under:
+  - `artifacts/perf/phase2_pipeline_bench_YYYYMMDD_HHMMSS.txt`
+
+## Known External Constraints (Not Framework Gaps)
+- NASDAQ historical sample framing/container compatibility is dataset-dependent.
+- Cboe full historical replay validation remains dependent on licensed sample availability.
