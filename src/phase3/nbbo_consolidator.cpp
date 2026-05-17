@@ -4,6 +4,10 @@
 
 namespace mf::phase3 {
 
+NbboConsolidator::NbboConsolidator() {
+  by_symbol_.reserve(1024);
+}
+
 std::size_t NbboConsolidator::venue_index(mf::core::Venue venue) noexcept {
   const std::size_t idx = static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
   assert(idx < 3);
@@ -35,7 +39,35 @@ Nbbo NbboConsolidator::compute(const SymbolState& state) noexcept {
 }
 
 bool NbboConsolidator::update(std::uint64_t symbol_u64, mf::core::Venue venue, const TopOfBook& top) noexcept {
-  auto& s = by_symbol_[symbol_u64];
+  const auto before = current(symbol_u64);
+  const auto after = update_and_current(symbol_u64, venue, top);
+  return (
+      before.has_bid != after.has_bid ||
+      before.has_ask != after.has_ask ||
+      before.bid_price != after.bid_price ||
+      before.ask_price != after.ask_price ||
+      before.bid_qty != after.bid_qty ||
+      before.ask_qty != after.ask_qty ||
+      before.bid_venue != after.bid_venue ||
+      before.ask_venue != after.ask_venue);
+}
+
+Nbbo NbboConsolidator::update_and_current(std::uint64_t symbol_u64, mf::core::Venue venue, const TopOfBook& top) noexcept {
+  SymbolState* state = nullptr;
+  if (cached_valid_ && cached_symbol_ == symbol_u64 && cached_state_ != nullptr) {
+    state = cached_state_;
+  } else {
+    auto it = by_symbol_.find(symbol_u64);
+    if (it == by_symbol_.end()) {
+      cached_valid_ = false;  // invalidate before potential rehash
+      it = by_symbol_.emplace(symbol_u64, SymbolState{}).first;
+    }
+    cached_symbol_ = symbol_u64;
+    cached_state_ = &it->second;
+    cached_valid_ = true;
+    state = &it->second;
+  }
+  auto& s = *state;
   auto& v = s.venues[venue_index(venue)];
   v.has_bid = top.has_bid;
   v.has_ask = top.has_ask;
@@ -44,17 +76,8 @@ bool NbboConsolidator::update(std::uint64_t symbol_u64, mf::core::Venue venue, c
   v.ask_price = top.ask_price;
   v.ask_qty = top.ask_qty;
 
-  const Nbbo before = s.nbbo;
   s.nbbo = compute(s);
-  return (
-      before.has_bid != s.nbbo.has_bid ||
-      before.has_ask != s.nbbo.has_ask ||
-      before.bid_price != s.nbbo.bid_price ||
-      before.ask_price != s.nbbo.ask_price ||
-      before.bid_qty != s.nbbo.bid_qty ||
-      before.ask_qty != s.nbbo.ask_qty ||
-      before.bid_venue != s.nbbo.bid_venue ||
-      before.ask_venue != s.nbbo.ask_venue);
+  return s.nbbo;
 }
 
 Nbbo NbboConsolidator::current(std::uint64_t symbol_u64) const noexcept {

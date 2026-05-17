@@ -5,9 +5,7 @@ namespace mf::phase3 {
 void FeatureBridge::on_merged_event(const mf::core::BookEvent& ev) noexcept {
   const auto apply = books_.on_event(ev);
   const std::uint64_t symbol = ev.symbol.as_u64();
-  const TopOfBook top = books_.top_of_book(ev.venue, symbol);
-  (void)nbbo_.update(symbol, ev.venue, top);
-  const Nbbo nbbo = nbbo_.current(symbol);
+  const Nbbo nbbo = nbbo_.update_and_current(symbol, ev.venue, apply.top_after);
 
   auto fv = features_.on_event(ev, nbbo, apply.queue_ahead_before_add);
   if (!fv.has_value()) {

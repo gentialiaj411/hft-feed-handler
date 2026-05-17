@@ -1,14 +1,40 @@
 #include "mf/phase3/feature_pipeline.hpp"
 
+#include <cstddef>
 #include <cmath>
 namespace mf::phase3 {
+
+FeaturePipeline::FeaturePipeline() {
+  by_symbol_.reserve(1024);
+}
+
+FeaturePipeline::FeaturePipeline(Config cfg) : cfg_(cfg) {
+  by_symbol_.reserve(1024);
+}
 
 std::optional<FeatureVector> FeaturePipeline::on_event(
     const mf::core::BookEvent& ev,
     const Nbbo& nbbo,
     double queue_ahead_hint) noexcept {
   const std::uint64_t symbol = ev.symbol.as_u64();
-  auto& s = by_symbol_[symbol];
+  State* state = nullptr;
+  if (cached_valid_ && cached_symbol_ == symbol && cached_state_ != nullptr) {
+    state = cached_state_;
+  } else {
+    auto it = by_symbol_.find(symbol);
+    if (it == by_symbol_.end()) {
+      cached_valid_ = false;  // invalidate before potential rehash
+      it = by_symbol_.emplace(symbol, State{}).first;
+      if (it->second.ofi_window.capacity() == 0U) {
+        it->second.ofi_window.reserve(cfg_.ofi_reserve_points);
+      }
+    }
+    cached_symbol_ = symbol;
+    cached_state_ = &it->second;
+    cached_valid_ = true;
+    state = &it->second;
+  }
+  auto& s = *state;
 
   if (!nbbo.has_bid || !nbbo.has_ask || nbbo.bid_price == 0 || nbbo.ask_price == 0) {
     return std::nullopt;
@@ -24,12 +50,21 @@ std::optional<FeatureVector> FeaturePipeline::on_event(
 
   double delta_ofi = 0.0;
   if (s.last_bid_price != 0 || s.last_ask_price != 0) {
-    if (nbbo.bid_price > s.last_bid_price) delta_ofi += bid_q;
-    if (nbbo.bid_price < s.last_bid_price) delta_ofi -= static_cast<double>(s.last_bid_qty);
-    if (nbbo.ask_price < s.last_ask_price) delta_ofi -= ask_q;
-    if (nbbo.ask_price > s.last_ask_price) delta_ofi += static_cast<double>(s.last_ask_qty);
-    delta_ofi += (bid_q - static_cast<double>(s.last_bid_qty));
-    delta_ofi -= (ask_q - static_cast<double>(s.last_ask_qty));
+    if (nbbo.bid_price > s.last_bid_price) {
+      delta_ofi += bid_q;
+    } else if (nbbo.bid_price < s.last_bid_price) {
+      delta_ofi -= static_cast<double>(s.last_bid_qty);
+    } else {
+      delta_ofi += (bid_q - static_cast<double>(s.last_bid_qty));
+    }
+
+    if (nbbo.ask_price < s.last_ask_price) {
+      delta_ofi -= ask_q;
+    } else if (nbbo.ask_price > s.last_ask_price) {
+      delta_ofi += static_cast<double>(s.last_ask_qty);
+    } else {
+      delta_ofi -= (ask_q - static_cast<double>(s.last_ask_qty));
+    }
   }
   s.last_bid_price = nbbo.bid_price;
   s.last_bid_qty = nbbo.bid_qty;
@@ -38,9 +73,14 @@ std::optional<FeatureVector> FeaturePipeline::on_event(
 
   s.ofi_sum += delta_ofi;
   s.ofi_window.push_back(State::OfiPoint{ev.exchange_ts_ns, delta_ofi});
-  while (!s.ofi_window.empty() && (ev.exchange_ts_ns - s.ofi_window.front().ts) > cfg_.ofi_window_ns) {
-    s.ofi_sum -= s.ofi_window.front().value;
-    s.ofi_window.pop_front();
+  while (s.ofi_head < s.ofi_window.size() &&
+         (ev.exchange_ts_ns - s.ofi_window[s.ofi_head].ts) > cfg_.ofi_window_ns) {
+    s.ofi_sum -= s.ofi_window[s.ofi_head].value;
+    ++s.ofi_head;
+  }
+  if (s.ofi_head > 4096U && s.ofi_head * 2U > s.ofi_window.size()) {
+    s.ofi_window.erase(s.ofi_window.begin(), s.ofi_window.begin() + static_cast<std::ptrdiff_t>(s.ofi_head));
+    s.ofi_head = 0;
   }
 
   if (ev.type == mf::core::EventType::Trade || ev.type == mf::core::EventType::CrossTrade) {
@@ -70,9 +110,15 @@ std::optional<FeatureVector> FeaturePipeline::on_event(
     while ((s.vpin_bucket_buy + s.vpin_bucket_sell) >= cfg_.vpin_bucket_volume) {
       const double tox = std::fabs(static_cast<double>(s.vpin_bucket_buy) - static_cast<double>(s.vpin_bucket_sell)) /
                          static_cast<double>(cfg_.vpin_bucket_volume);
-      s.vpin_buckets.push_back(tox);
-      if (s.vpin_buckets.size() > cfg_.vpin_bucket_count) {
-        s.vpin_buckets.pop_front();
+      const std::size_t max_buckets = (cfg_.vpin_bucket_count < s.vpin_buckets.size())
+                                          ? cfg_.vpin_bucket_count
+                                          : s.vpin_buckets.size();
+      if (s.vpin_size < max_buckets) {
+        s.vpin_buckets[(s.vpin_head + s.vpin_size) % max_buckets] = tox;
+        ++s.vpin_size;
+      } else if (max_buckets > 0U) {
+        s.vpin_buckets[s.vpin_head] = tox;
+        s.vpin_head = (s.vpin_head + 1U) % max_buckets;
       }
       const std::uint32_t excess = (s.vpin_bucket_buy + s.vpin_bucket_sell) - cfg_.vpin_bucket_volume;
       s.vpin_bucket_buy = (s.vpin_bucket_buy > excess) ? excess : 0U;
@@ -90,12 +136,15 @@ std::optional<FeatureVector> FeaturePipeline::on_event(
   }
 
   double vpin = 0.0;
-  if (!s.vpin_buckets.empty()) {
+  if (s.vpin_size > 0U) {
+    const std::size_t max_buckets = (cfg_.vpin_bucket_count < s.vpin_buckets.size())
+                                        ? cfg_.vpin_bucket_count
+                                        : s.vpin_buckets.size();
     double sum = 0.0;
-    for (double t : s.vpin_buckets) {
-      sum += t;
+    for (std::size_t i = 0; i < s.vpin_size; ++i) {
+      sum += s.vpin_buckets[(s.vpin_head + i) % max_buckets];
     }
-    vpin = sum / static_cast<double>(s.vpin_buckets.size());
+    vpin = sum / static_cast<double>(s.vpin_size);
   }
 
   FeatureVector fv{};

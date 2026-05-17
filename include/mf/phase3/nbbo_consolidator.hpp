@@ -11,7 +11,10 @@ namespace mf::phase3 {
 
 class NbboConsolidator {
  public:
+  NbboConsolidator();
+
   [[nodiscard]] bool update(std::uint64_t symbol_u64, mf::core::Venue venue, const TopOfBook& top) noexcept;
+  [[nodiscard]] Nbbo update_and_current(std::uint64_t symbol_u64, mf::core::Venue venue, const TopOfBook& top) noexcept;
   [[nodiscard]] Nbbo current(std::uint64_t symbol_u64) const noexcept;
 
  private:
@@ -32,6 +35,9 @@ class NbboConsolidator {
   static Nbbo compute(const SymbolState& state) noexcept;
 
   std::unordered_map<std::uint64_t, SymbolState> by_symbol_{};
+  std::uint64_t cached_symbol_{0};
+  SymbolState* cached_state_{nullptr};
+  bool cached_valid_{false};
 };
 
 }  // namespace mf::phase3
