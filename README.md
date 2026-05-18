@@ -69,6 +69,27 @@ bash scripts/run_phase2_tests_wsl.sh
 
 ## Performance Evidence
 
-Do not rely on fixed benchmark claims in source control.
+Numbers below are from a single pinned core (`taskset -c 0`), Release build, WSL2 on Intel Core Ultra 9 275HX (24-core, ~16 GB RAM). `ticks_per_ns=1.0` means the bench fell back to `steady_clock` on WSL2; treat these as wall-ns upper bounds, not TSC-calibrated.
 
-Run `bash scripts/bench_phase2_pipeline_wsl.sh` on a pinned core to produce real p50/p99/p99.9 numbers.
+### Feed hot-path (sequence tracking + SPSC ring, 2 M events)
+
+| Percentile | Latency |
+|---|---|
+| p50 | 79 ns |
+| p99 | 111 ns |
+| p99.9 | 246 ns |
+
+### Phase 3 feature engine (order book → NBBO → 6 features → ring publish, 1 M events)
+
+| Percentile | Latency |
+|---|---|
+| p50 | 431 ns |
+| p99 | 814 ns |
+| p99.9 | 11 111 ns |
+
+To reproduce:
+
+```bash
+taskset -c 0 ./build/feed_hot_path_bench --events 2000000
+taskset -c 0 ./build/phase3_feature_latency_bench --events 1000000
+```

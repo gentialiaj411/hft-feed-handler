@@ -1,63 +1,145 @@
-# MultiFeed Architecture (Locked v1)
+# MultiFeed Architecture
 
-## Threading (v1)
-- T0 control/config
-- T1 NASDAQ parser+arbiter (A/B)
-- T2 IEX parser+seq/recovery (single-stream + retransmission/replay recovery)
-- T3 Cboe parser+arbiter (A/B)
-- T4 shared book thread (round-robin venue queues)
-- T5 NBBO + features
-- T6 JIT consumer bridge
+## Purpose
+This document gives the high-level architecture of `market-data-handler` / `MultiFeed`.
+It is intentionally shorter than `PROJECT_CONTEXT.md` and exists to answer one question quickly:
+how does the system move from raw multi-venue market data to deterministic features?
 
-## Data Ownership
-- Parser threads own protocol decode state and sequence state.
-- Shared book thread owns all per-venue books in v1.
-- NBBO/features thread owns consolidated top-of-book and feature state.
-- All handoff via bounded preallocated SPSC queues.
+## System Overview
+MultiFeed is an offline C++20 market-data pipeline that:
+- decodes three venue protocols
+- normalizes them into one canonical event model
+- enforces per-venue sequence discipline
+- merges events deterministically
+- maintains per-venue order books and consolidated NBBO
+- computes microstructure features
+- publishes feature vectors through a lock-free SPSC ring
 
-## Venue Redundancy Notes
-- NASDAQ ITCH and Cboe PITCH paths support A/B-style duplicate stream arbitration in replay simulation.
-- IEX DEEP historical replay is consumed as single-stream PCAP and uses sequence tracking + recovery logic (no native A/B arbitration dependency in v1 replay mode).
+```text
+Raw venue payloads
+  -> protocol parsers
+  -> canonical BookEvent
+  -> sequence tracking and gap handling
+  -> deterministic merge / recovery / A-B arbitration
+  -> order book maintenance
+  -> NBBO consolidation
+  -> feature pipeline
+  -> FeatureVector publication
+```
 
-## Determinism
-- Canonical event stream order drives CRC32.
-- CRC input is canonical serialized BookEvent fields, not raw bytes.
-- Replay invariance target: bit-identical across 100 runs.
+## Architectural Layers
 
-## Phase 2 Framework Status
-- Added a venue-scoped sequence tracker module (`mf::phase2::SequenceTracker`) with bounded gap window logic.
-- Added multi-venue wrapper (`mf::phase2::MultiVenueSequenceTracker`) covering NASDAQ, IEX, and Cboe as independent sequence domains.
-- Added recovery abstraction interface (`mf::phase2::IRecoveryHandler`) and gap-aware sequencer (`mf::phase2::GapAwareSequencer`) to issue deterministic recovery requests for missing ranges.
-- Added deterministic merged publication primitive (`mf::phase2::DeterministicMerger`) with stable ordering by `(exchange_ts_ns, venue, sequence, raw_type)`.
-- Current behavior:
-  - in-order packets advance expected sequence
-  - duplicate/old packets are classified and ignored
-  - out-of-order packets within window are buffered and released deterministically once gaps are filled
-  - packets beyond window are reported as oversized gaps for recovery path handling
-- Remaining Phase 2 work:
-  - none for framework scope (Phase 2 module set is implemented and compiled)
+### 1. Protocol Decode
+The parser layer converts venue-specific wire formats into `mf::core::BookEvent`.
+Supported venue inputs:
+- NASDAQ ITCH 5.0
+- IEX DEEP+
+- Cboe PITCH
 
-### Validator Integration (Phase 2)
-- `phase1_parser_validate` now has `--phase2-merge <nasdaq_file> <iex_pcap_file> [cboe_file]`.
-- This mode routes parsed events through:
-  - `mf::phase2::Pipeline` (shared module)
-  - `GapAwareSequencer` (per-venue sequence/gap state + recovery request signaling)
-  - `ReplayRecoverySimulator` (replay-time missing-range fill from previously seen events)
-  - deterministic gap-buffer release path
-  - `DeterministicMerger` (canonical publish order)
-- It reports `merged_crc32` and recovery/gap counters for deterministic framework bring-up.
-- It also reports `dropped_publish_overflow` so bounded queue-pressure drops are explicit (never silent).
-- Cboe is optional in this mode, preserving pluggability while licensing/data remains a separate validation track.
-- Deterministic merge ordering is covered by a dedicated unit-style CRC invariance test (`test_phase2_determinism_crc`) that compares multiple arrival permutations of the same logical event set.
-- `phase1_parser_validate` also has `--phase2-merge-jit ...` mode, which drains merged events into a JIT bridge publisher backed by an SPSC ring and reports publish/drop counters.
-- Dedicated benchmark binary exists: `phase2_pipeline_bench` (with helper script `scripts/bench_phase2_pipeline.ps1`).
-- End-to-end evidence runner exists for Linux/WSL2: `scripts/run_phase2_evidence_wsl.sh`.
+Each parser is responsible for:
+- wire-format decoding
+- timestamp normalization
+- side/order/price/quantity extraction
+- setting venue identity and raw message type
+- rejecting malformed payloads cleanly
 
-## Latency budget (laptop-bound target)
-- Parse/decode: 35-80 ns
-- A/B arbitration + seq tracking: 20-50 ns
-- Shared book update: 100-220 ns
-- NBBO update: 25-70 ns
-- Feature update: 120-350 ns
-- SPSC publish to JIT: 80-250 ns
-- End-to-end (parse entry -> feature vector publish): 380-1,020 ns p99 envelope
+### 2. Canonical Event Model
+`mf::core::BookEvent` is the shared object that all later stages consume.
+It carries:
+- venue
+- event type
+- sequence
+- exchange and ingest timestamps
+- symbol
+- order and trade identifiers
+- price, quantity, side
+- raw message type
+
+This is the key abstraction boundary in the system.
+Everything after parsing works in terms of this model, not protocol-specific structs.
+
+### 3. Phase 2 Replay and Recovery
+Phase 2 makes the stream replay-safe and deterministic.
+Its responsibilities are:
+- sequence tracking per venue
+- bounded gap buffering
+- recovery request emission
+- deterministic merge ordering
+- optional A/B arbitration for dual-feed replay
+- recovery simulator integration
+
+Important rules:
+- in-order events advance immediately
+- small gaps are buffered
+- duplicate/old events are ignored
+- large gaps force advancement so the stream does not deadlock
+- deterministic merge ordering uses:
+  1. `exchange_ts_ns`
+  2. `venue`
+  3. `sequence`
+  4. `raw_type`
+
+### 4. Phase 3 Market State and Features
+Phase 3 consumes merged canonical events and builds market state:
+- per-venue order books
+- per-symbol NBBO
+- microstructure features
+
+The phase is split into:
+- order book engine
+- NBBO consolidator
+- feature pipeline
+- feature bridge / publisher
+
+### 5. Publication Layer
+Feature vectors are published through a lock-free SPSC ring.
+This keeps the hot path simple:
+- one producer
+- one consumer
+- bounded capacity
+- cache-line-separated atomic indices
+
+## Data Ownership Model
+- Parsers own wire-format interpretation only.
+- Phase 2 owns sequencing, recovery, replay order, and determinism witnesses.
+- Phase 3 owns order state, NBBO, and feature computation.
+- The ring buffer owns only publication transport.
+
+This separation matters because it keeps protocol parsing, replay correctness, and feature math from bleeding into each other.
+
+## Concurrency and Throughput Shape
+The design is intentionally pipeline-like rather than fully shared-state concurrent:
+- venue parsing can be independent
+- sequencing is venue-scoped
+- deterministic merge happens after events are normalized
+- book and feature state are updated in a controlled downstream path
+
+The primary lock-free primitive is the SPSC ring at publication time.
+Elsewhere, the code prefers deterministic state transitions over aggressive shared concurrency.
+
+## Determinism Strategy
+The project uses two determinism anchors:
+- stable merge ordering
+- CRC32 over selected canonical event fields
+
+The goal is not cryptographic integrity.
+The goal is repeatable replay and fast regression checking.
+
+## Validation Surfaces
+Architecture-level confidence comes from:
+- parser unit tests
+- sequence/recovery tests
+- determinism CRC tests
+- order book and NBBO tests
+- feature math tests
+- feature bridge publication tests
+- benchmark and evidence scripts
+
+## Relationship To `PROJECT_CONTEXT.md`
+- `docs/architecture.md` answers: "what is the system shape?"
+- `PROJECT_CONTEXT.md` answers: "what exactly does each module/API/test do right now?"
+
+Keep both files.
+The architecture file should stay high-level.
+The project context file should stay detailed.
+

@@ -46,11 +46,20 @@ target_link_libraries(phase2_pipeline_bench PRIVATE multifeed_core)
 add_executable(phase2_ab_evidence src/apps/phase2_ab_evidence_main.cpp)
 target_link_libraries(phase2_ab_evidence PRIVATE multifeed_core)
 
+add_executable(phase3_feature_latency_bench tools/feature_latency_probe.cpp)
+target_link_libraries(phase3_feature_latency_bench PRIVATE multifeed_core)
+
+add_executable(feed_hot_path_bench tools/feed_hot_path_bench.cpp)
+target_link_libraries(feed_hot_path_bench PRIVATE multifeed_core)
+
 add_executable(test_iex_deep_parser tests/test_iex_deep_parser.cpp)
 target_link_libraries(test_iex_deep_parser PRIVATE multifeed_core)
 
 add_executable(test_nasdaq_itch_parser tests/test_nasdaq_itch_parser.cpp)
 target_link_libraries(test_nasdaq_itch_parser PRIVATE multifeed_core)
+
+add_executable(test_cboe_pitch_parser tests/test_cboe_pitch_parser.cpp)
+target_link_libraries(test_cboe_pitch_parser PRIVATE multifeed_core)
 
 add_executable(test_phase2_sequence_tracker tests/test_phase2_sequence_tracker.cpp)
 target_link_libraries(test_phase2_sequence_tracker PRIVATE multifeed_core)
@@ -75,6 +84,12 @@ target_link_libraries(test_phase2_ab_arbiter PRIVATE multifeed_core)
 
 add_executable(test_phase3_feature_bridge tests/test_phase3_feature_bridge.cpp)
 target_link_libraries(test_phase3_feature_bridge PRIVATE multifeed_core)
+
+add_executable(test_phase3_feature_pipeline tests/test_phase3_feature_pipeline.cpp)
+target_link_libraries(test_phase3_feature_pipeline PRIVATE multifeed_core)
+
+add_executable(test_phase3_order_book_nbbo tests/test_phase3_order_book_nbbo.cpp)
+target_link_libraries(test_phase3_order_book_nbbo PRIVATE multifeed_core)
 
 if(MF_ENABLE_FUZZ)
   add_executable(fuzz_nasdaq_parser tests/fuzz/fuzz_nasdaq_parser.cpp)
