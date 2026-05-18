@@ -12,6 +12,7 @@ option(MF_BUILD_PHASE4 "Build Phase 4 backtest engine + tests" ON)
 option(MF_BUILD_PHASE_B "Build Phase B wire ingestion + tests (Linux only)" ON)
 option(MF_BUILD_JOURNAL "Build Phase C journal + replay tooling (Linux only)" ON)
 option(MF_BUILD_PHASE_D "Build Phase D NUMA/pinning/hugepage tooling (Linux only)" ON)
+option(MF_BUILD_BENCH_SWEEP "Build Phase E bench sweep + evidence tooling" ON)
 
 set(MF_HAS_LIBNUMA OFF)
 if(MF_BUILD_PHASE_D AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -37,9 +38,12 @@ add_library(multifeed_core
     src/phase3/nbbo_consolidator.cpp
     src/phase3/feature_pipeline.cpp
     src/phase3/feature_bridge.cpp
+    src/research/strategy_engine.cpp
     src/proto/nasdaq/itch50_parser.cpp
     src/proto/iex/deep_parser.cpp
     src/proto/cboe/pitch_parser.cpp
+    src/bench/histogram.cpp
+    src/bench/run_metadata.cpp
 )
 
 if(MF_BUILD_PHASE4)
@@ -67,7 +71,13 @@ if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       src/journal/journal_writer.cpp
       src/journal/journal_reader.cpp
       src/journal/journaling_sink.cpp
+      src/research/event_store.cpp
   )
+  if(MF_BUILD_PHASE4)
+    target_sources(multifeed_core PRIVATE
+        src/research/experiment_runner.cpp
+    )
+  endif()
 elseif(MF_BUILD_JOURNAL)
   message(STATUS "MF_BUILD_JOURNAL requested but disabled: Phase C journal targets are Linux-only.")
 endif()
@@ -84,6 +94,20 @@ if(MF_BUILD_PHASE_D AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   endif()
 elseif(MF_BUILD_PHASE_D)
   message(STATUS "MF_BUILD_PHASE_D requested but disabled: Phase D targets are Linux-only.")
+endif()
+
+if(MF_BUILD_BENCH_SWEEP)
+  add_executable(bench_sweep tools/bench_sweep.cpp)
+  target_link_libraries(bench_sweep PRIVATE multifeed_core)
+
+  add_executable(test_phase_e_histogram tests/test_phase_e_histogram.cpp)
+  target_link_libraries(test_phase_e_histogram PRIVATE multifeed_core)
+
+  add_executable(test_phase_e_run_metadata tests/test_phase_e_run_metadata.cpp)
+  target_link_libraries(test_phase_e_run_metadata PRIVATE multifeed_core)
+
+  add_executable(test_phase_e_sweep_smoke tests/test_phase_e_sweep_smoke.cpp)
+  target_link_libraries(test_phase_e_sweep_smoke PRIVATE multifeed_core)
 endif()
 
 target_include_directories(multifeed_core PUBLIC include)
@@ -156,6 +180,20 @@ if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
   add_executable(test_phase_c_journal_format_version tests/test_phase_c_journal_format_version.cpp)
   target_link_libraries(test_phase_c_journal_format_version PRIVATE multifeed_core)
+
+  add_executable(test_research_event_store tests/test_research_event_store.cpp)
+  target_link_libraries(test_research_event_store PRIVATE multifeed_core)
+
+  if(MF_BUILD_PHASE4)
+    add_executable(experiment_runner tools/experiment_runner.cpp)
+    target_link_libraries(experiment_runner PRIVATE multifeed_core)
+
+    add_executable(make_research_journal tools/make_research_journal.cpp)
+    target_link_libraries(make_research_journal PRIVATE multifeed_core)
+
+    add_executable(test_research_experiment_runner tests/test_research_experiment_runner.cpp)
+    target_link_libraries(test_research_experiment_runner PRIVATE multifeed_core)
+  endif()
 endif()
 
 if(MF_BUILD_PHASE_D AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -225,6 +263,12 @@ target_link_libraries(test_phase3_feature_pipeline PRIVATE multifeed_core)
 
 add_executable(test_phase3_order_book_nbbo tests/test_phase3_order_book_nbbo.cpp)
 target_link_libraries(test_phase3_order_book_nbbo PRIVATE multifeed_core)
+
+add_executable(test_research_simulation_clock tests/test_research_simulation_clock.cpp)
+target_link_libraries(test_research_simulation_clock PRIVATE multifeed_core)
+
+add_executable(test_research_strategy_engine tests/test_research_strategy_engine.cpp)
+target_link_libraries(test_research_strategy_engine PRIVATE multifeed_core)
 
 if(MF_BUILD_PHASE4)
   add_executable(test_phase4_sim_matching_engine tests/test_phase4_sim_matching_engine.cpp)

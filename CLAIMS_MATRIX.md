@@ -1,0 +1,20 @@
+# CLAIMS_MATRIX.md
+
+| Claim | Current evidence | Risk level | Missing proof | Suggested verification |
+|---|---|---|---|---|
+| 3-venue binary protocol parsing | Stated in README + passing `test_cboe_pitch_parser` | Medium | NASDAQ/IEX parser evidence still partially indirect; end-to-end replay not validated here | Inspect remaining parser tests/fuzz targets; run narrow parser tests |
+| Deterministic merge with CRC invariance | Stated in README | High | No repeated-run evidence checked in this pass | Run determinism regression script and compare CRC outputs |
+| Gap recovery with bounded buffering + force_advance | Stated in README | Medium | Behavior under edge loss patterns unverified | Run targeted recovery tests with controlled sequence gaps |
+| A/B arbitration with drop injection | Stated in README | Medium | No empirical validation inspected | Run A/B evidence scripts and confirm CRC comparisons |
+| Order book and NBBO venue consolidation | Source inspection + passing `test_phase3_order_book_nbbo` + `test_phase3_feature_bridge` | Medium | Broader scenario coverage still unverified | Extend with cancel/replace edge cases and cross-venue stress |
+| NBBO + six feature engine outputs | Stated in README | Medium | Feature correctness has passing mirrored C++ regression evidence; benchmark claims updated from local WSL runs | Cross-check with `validate_feature_math.py`, `test_phase3_feature_pipeline`, and README benchmark numbers |
+| Lock-free SPSC ring buffer | Stated in README | Medium | Concurrency correctness/perf unverified | Inspect ring buffer tests + run focused stress tests |
+| libFuzzer targets for 3 parsers | Stated in README | Low | Existence/execution status unverified | Locate fuzz targets and run short fuzz smoke |
+| Multicast UDP ingestion w/ A/B failover (Phase B) | Passing `test_phase_b_framing`, `test_phase_b_udp_loopback`, `test_phase_b_ab_failover`, `test_phase_b_burst_loss` under `~/mdh-build/` (GCC 15.2.0, WSL2 Ubuntu) | Medium | End-to-end cross-process throughput/latency artifact under `bench/results/phase_b_wire_*.json` TODO/VERIFY due WSL2 multicast loopback limitations | Re-run smoke on bare-metal Linux or non-WSL Linux host |
+| Matching engine + market-making strategy + PnL (Phase A) | Passing `test_phase4_sim_matching_engine`, `test_phase4_market_making_strategy`, `test_phase4_pnl_accountant`, `test_phase4_backtest_runner` under `~/mdh-build/` | Medium | Live backtest against NASDAQ TotalView sample tape not yet captured to JSON; Sharpe/DD/fill-ratio resume numbers pending Phase E sweep | Run `phase4_backtest` against a tape and lock numbers in Phase E |
+| NUMA-local pinned SPSC publication with hugepage-aware backing (Phase D) | Code implementation added: `mf::os::{cpu_affinity,numa,hugepages}`, `include/mf/core/spsc_ring_aligned_storage.hpp`, `tools/phase_d_latency_bench.cpp`, `tests/test_phase_d_*` | High | Linux runtime evidence absent on this host; no baseline-vs-tuned artifact captured yet | Run Phase D build/tests/bench on Linux and capture `bench/results/phase_d_pin_*.json` + topology output |
+| Event-sourced research simulation architecture | Added `mf::research::{EventStore,SimulationClock,StrategyEngine,ExperimentRunner}` with passing `test_research_event_store`, `test_research_simulation_clock`, `test_research_strategy_engine`, and `test_research_experiment_runner` under `~/mdh-build/`; synthetic 2M artifacts `bench/results/experiment_synth2m_{a,b}.json` match input CRC `2142301960`, config hash `2743174372`, output hash `82487151` | Medium | No recorded market-tape 2M experiment JSON artifact yet | Run `experiment_runner` on recorded canonical journal twice and compare input/config/output hashes, or keep wording explicitly synthetic |
+
+Update 2026-05-18: Phase D implementation landed, but Phase D runtime benchmark validation is still TODO/VERIFY.
+
+Update 2026-05-18: Research architecture layer, deterministic synthetic-journal test, and 2M synthetic canonical-event experiment artifacts pass under WSL `~/mdh-build/`; large recorded market-tape experiment artifact remains TODO/VERIFY.
