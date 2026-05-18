@@ -31,5 +31,5 @@ This project uses exchange-published primary documentation as the protocol sourc
 
 ## Implementation Policy
 1. Only implement wire offsets and message-type IDs directly from exchange-published docs.
-2. If docs and sample captures disagree, record the discrepancy in docs/phase-1.md.
+2. If docs and sample captures disagree, record the discrepancy in `AUDIT_LOG.md`.
 3. Do not treat third-party summaries as normative.
