@@ -16,6 +16,8 @@ jobs:
         run: cmake --build build -j
       - name: Run Phase2 Tests
         run: bash scripts/run_phase2_tests_wsl.sh artifacts/perf
+      - name: Validate Feature Math (Python)
+        run: python3 scripts/validate_feature_math.py
       - name: Run Phase2 Bench Snapshot
         run: bash scripts/bench_phase2_pipeline_wsl.sh 200000 256 1048576 artifacts/perf
       - name: Run Phase2 Determinism Regression
