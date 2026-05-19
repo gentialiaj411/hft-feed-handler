@@ -2,16 +2,32 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 
-int main() {
-  const int rc =
+namespace {
+
+std::string quote(const std::filesystem::path& p) {
+  std::ostringstream os;
+  os << '"' << p.string() << '"';
+  return os.str();
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+  const auto exe_dir = (argc > 0 && argv[0] != nullptr)
+                           ? std::filesystem::absolute(argv[0]).parent_path()
+                           : std::filesystem::current_path();
+  const auto bench_sweep =
 #if defined(_WIN32)
-      std::system("bench_sweep.exe --events 10000 --warmup-reps 1 --measured-reps 1");
+      exe_dir / "bench_sweep.exe";
 #else
-      std::system("./bench_sweep --events 10000 --warmup-reps 1 --measured-reps 1");
+      exe_dir / "bench_sweep";
 #endif
-  (void)rc;
+  const std::string cmd = quote(bench_sweep) + " --events 10000 --warmup-reps 1 --measured-reps 1";
+  const int rc = std::system(cmd.c_str());
+  assert(rc == 0);
   bool found_summary = false;
   for (const auto& ent : std::filesystem::directory_iterator("bench/results")) {
     const auto p = ent.path().filename().string();

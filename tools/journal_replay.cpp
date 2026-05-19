@@ -50,18 +50,24 @@ int main(int argc, char** argv) {
 #else
   const std::string path = arg(argc, argv, "--journal", "");
   const std::string mode = arg(argc, argv, "--mode", "both");
+  const std::string seed = arg(argc, argv, "--seed", "");
+  (void)seed;
   if (path.empty()) {
-    std::printf("usage: --journal <path> --mode {pipeline-crc|backtest|both}\n");
+    std::fprintf(stderr, "journal_replay: record_decode at offset=0 (detail=missing_journal_arg)\n");
+    std::fprintf(stderr, "journal_replay: exiting nonzero, reason=record_decode\n");
     return 2;
   }
   if (mode != "pipeline-crc" && mode != "backtest" && mode != "both") {
-    std::printf("invalid --mode\n");
+    std::fprintf(stderr, "journal_replay: record_decode at offset=0 (detail=invalid_mode)\n");
+    std::fprintf(stderr, "journal_replay: exiting nonzero, reason=record_decode\n");
     return 2;
   }
 
   mf::journal::JournalReader reader;
   if (!reader.open(path)) {
-    std::printf("failed to open journal: %s\n", path.c_str());
+    const char* r = reader.error_reason() ? reader.error_reason() : "record_decode";
+    std::fprintf(stderr, "journal_replay: %s at offset=%zu (detail=open_failed:%s)\n", r, reader.error_offset(), path.c_str());
+    std::fprintf(stderr, "journal_replay: exiting nonzero, reason=%s\n", r);
     return 1;
   }
 
@@ -73,6 +79,12 @@ int main(int argc, char** argv) {
   while (reader.next(ev, ts, seq)) {
     ev.ingest_ts_ns = ts;
     pipeline.on_event(ev);
+  }
+  if (reader.had_error()) {
+    const char* r = reader.error_reason() ? reader.error_reason() : "record_decode";
+    std::fprintf(stderr, "journal_replay: %s at offset=%zu (detail=reader_next_failed)\n", r, reader.error_offset());
+    std::fprintf(stderr, "journal_replay: exiting nonzero, reason=%s\n", r);
+    return 1;
   }
   pipeline.finalize(&sink);
 
@@ -87,9 +99,12 @@ int main(int argc, char** argv) {
   if (mode == "backtest" || mode == "both") {
     mf::phase4::BacktestRunner runner;
     rep = runner.run(sink.merged);
-    std::printf("backtest pnl=%.6f sharpe=%.6f fills=%llu max_dd=%.6f\n",
+    std::printf("backtest realized_pnl=%.6f unrealized_pnl=%.6f total_pnl=%.6f sharpe=%.6f fill_ratio=%.6f fills=%llu max_dd=%.6f\n",
                 rep.realized_pnl,
+                rep.unrealized_pnl,
+                rep.total_pnl,
                 rep.sharpe,
+                rep.fill_ratio,
                 static_cast<unsigned long long>(rep.fills),
                 rep.max_drawdown);
   }
@@ -104,7 +119,10 @@ int main(int argc, char** argv) {
        << "\"crc_failures\":" << jr.crc_failures << ","
        << "\"pipeline_crc_hex\":\"" << to_hex(ps.merged_crc) << "\","
        << "\"backtest_realized_pnl\":" << rep.realized_pnl << ","
+       << "\"backtest_unrealized_pnl\":" << rep.unrealized_pnl << ","
+       << "\"backtest_total_pnl\":" << rep.total_pnl << ","
        << "\"backtest_sharpe\":" << rep.sharpe << ","
+       << "\"backtest_fill_ratio\":" << rep.fill_ratio << ","
        << "\"backtest_fill_count\":" << rep.fills << ","
        << "\"backtest_max_dd\":" << rep.max_drawdown
        << "}\n";

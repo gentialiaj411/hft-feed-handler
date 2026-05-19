@@ -1,0 +1,51 @@
+{
+    "metadata":  {
+                     "benchmark":  "feed_hot_path",
+                     "command":  "taskset -c 2 /home/genti411/mdh-task1-build/feed_hot_path_bench --events 2000000 --warmup 10000",
+                     "events":  2000000,
+                     "warmup":  10000,
+                     "git_sha":  "4b5ab45af37c4ea1fee77aea27e89ef8fa35ff5a",
+                     "build_type":  "Release",
+                     "compiler":  "c++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+                     "cpu_model":  "Intel(R) Core(TM) Ultra 9 275HX",
+                     "kernel":  "6.6.114.1-microsoft-standard-WSL2",
+                     "governor":  "n/a",
+                     "isolcpus":  "n/a",
+                     "host":  "wsl2",
+                     "utc_timestamp":  "20260518T224540Z",
+                     "build_dir":  "/home/genti411/mdh-task1-build",
+                     "seed":  null
+                 },
+    "runs":  [
+                 {
+                     "run":  1,
+                     "stdout_path":  "C:\\Users\\bhask\\Documents\\PROJECTS\\market-data-handler\\bench\\results\\feed_hot_path_wsl2_4b5ab45af37c4ea1fee77aea27e89ef8fa35ff5a_run1.txt",
+                     "events":  2000000,
+                     "warmup":  10000,
+                     "published":  2000000,
+                     "dropped":  0,
+                     "ticks_per_ns":  1,
+                     "p50_ns":  23,
+                     "p99_ns":  36,
+                     "p999_ns":  142,
+                     "max_ns":  220759
+                 },
+                 {
+                     "run":  2,
+                     "stdout_path":  "C:\\Users\\bhask\\Documents\\PROJECTS\\market-data-handler\\bench\\results\\feed_hot_path_wsl2_4b5ab45af37c4ea1fee77aea27e89ef8fa35ff5a_run2.txt",
+                     "events":  2000000,
+                     "warmup":  10000,
+                     "published":  2000000,
+                     "dropped":  0,
+                     "ticks_per_ns":  1,
+                     "p50_ns":  23,
+                     "p99_ns":  37,
+                     "p999_ns":  152,
+                     "max_ns":  160730
+                 }
+             ],
+    "stability":  {
+                      "p99_delta_pct":  2.778,
+                      "within_15pct":  true
+                  }
+}

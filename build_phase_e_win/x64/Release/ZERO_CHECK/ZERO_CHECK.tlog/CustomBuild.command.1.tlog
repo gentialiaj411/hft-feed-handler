@@ -1,0 +1,10 @@
+^C:\USERS\BHASK\DOCUMENTS\PROJECTS\MARKET-DATA-HANDLER\BUILD_PHASE_E_WIN\CMAKEFILES\194DA68FA31FB4F8AE1A71D6B72AF510\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/bhask/Documents/PROJECTS/market-data-handler -BC:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win/MultiFeed.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,10 @@
+[feed_hot_path]
+events=2000000
+warmup=10000
+published=2000000
+dropped=0
+ticks_per_ns=1.000000
+lat_ns_p50=23
+lat_ns_p99=37
+lat_ns_p999=152
+lat_ns_max=160730
