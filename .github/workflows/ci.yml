@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  build-test-fuzz-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+
+      - name: Configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMF_ENABLE_FUZZ=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Parser tests
+        run: ctest --test-dir build --output-on-failure -L parser
+
+      - name: Phase 2 tests
+        run: ctest --test-dir build --output-on-failure -L phase2
+
+      - name: Phase C replay determinism test
+        run: ctest --test-dir build --output-on-failure -L phase_c
+
+      - name: Phase 3 tests
+        run: ctest --test-dir build --output-on-failure -L phase3
+
+      - name: Phase 4 tests
+        run: ctest --test-dir build --output-on-failure -L phase4
+
+      - name: Research tests
+        run: ctest --test-dir build --output-on-failure -L research
+
+      - name: Phase E tests
+        run: ctest --test-dir build --output-on-failure -L phase_e
+
+      - name: Fuzz smoke (30s each)
+        run: |
+          for target in fuzz_nasdaq_parser fuzz_iex_parser fuzz_cboe_parser; do
+            path="build/${target}"
+            if [ -x "$path" ]; then
+              "$path" -max_total_time=30
+            else
+              echo "Skipping $target (not built)"
+            fi
+          done

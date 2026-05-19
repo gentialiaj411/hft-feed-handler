@@ -80,8 +80,8 @@ SpscRingPtr<T, Size> make_spsc_ring_on_node(int numa_node, bool try_hugepages, S
     if (storage != nullptr) {
       deleter.storage = storage;
       deleter.bytes = kBytes;
-      deleter.use_numa = mf::os::numa_available();
-      info_out.kind = deleter.use_numa ? SpscBackingKind::Numa : SpscBackingKind::Heap;
+      deleter.use_numa = true;
+      info_out.kind = mf::os::numa_available() ? SpscBackingKind::Numa : SpscBackingKind::Heap;
     }
   }
   if (storage == nullptr) {

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(MultiFeed LANGUAGES CXX)
+enable_testing()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -108,6 +109,7 @@ if(MF_BUILD_BENCH_SWEEP)
 
   add_executable(test_phase_e_sweep_smoke tests/test_phase_e_sweep_smoke.cpp)
   target_link_libraries(test_phase_e_sweep_smoke PRIVATE multifeed_core)
+  add_dependencies(test_phase_e_sweep_smoke bench_sweep)
 endif()
 
 target_include_directories(multifeed_core PUBLIC include)
@@ -160,6 +162,9 @@ if(MF_BUILD_PHASE_B AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_executable(itch_to_journal tools/itch_to_journal.cpp)
+  target_link_libraries(itch_to_journal PRIVATE multifeed_core)
+
   add_executable(journal_replay tools/journal_replay.cpp)
   target_link_libraries(journal_replay PRIVATE multifeed_core)
 
@@ -180,6 +185,9 @@ if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
   add_executable(test_phase_c_journal_format_version tests/test_phase_c_journal_format_version.cpp)
   target_link_libraries(test_phase_c_journal_format_version PRIVATE multifeed_core)
+
+  add_executable(test_phase_c_mixed_event_replay tests/test_phase_c_mixed_event_replay.cpp)
+  target_link_libraries(test_phase_c_mixed_event_replay PRIVATE multifeed_core)
 
   add_executable(test_research_event_store tests/test_research_event_store.cpp)
   target_link_libraries(test_research_event_store PRIVATE multifeed_core)
@@ -243,6 +251,9 @@ target_link_libraries(test_phase2_recovery_merge PRIVATE multifeed_core)
 add_executable(test_phase2_recovery_simulator tests/test_phase2_recovery_simulator.cpp)
 target_link_libraries(test_phase2_recovery_simulator PRIVATE multifeed_core)
 
+add_executable(test_phase2_recovery_pending_dedupe tests/test_phase2_recovery_pending_dedupe.cpp)
+target_link_libraries(test_phase2_recovery_pending_dedupe PRIVATE multifeed_core)
+
 add_executable(test_phase2_determinism_crc tests/test_phase2_determinism_crc.cpp)
 target_link_libraries(test_phase2_determinism_crc PRIVATE multifeed_core)
 
@@ -284,7 +295,7 @@ if(MF_BUILD_PHASE4)
   target_link_libraries(test_phase4_backtest_runner PRIVATE multifeed_core)
 endif()
 
-if(MF_ENABLE_FUZZ)
+if(MF_ENABLE_FUZZ AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_executable(fuzz_nasdaq_parser tests/fuzz/fuzz_nasdaq_parser.cpp)
   target_link_libraries(fuzz_nasdaq_parser PRIVATE multifeed_core)
   target_compile_options(fuzz_nasdaq_parser PRIVATE -fsanitize=fuzzer,address,undefined)
@@ -299,4 +310,60 @@ if(MF_ENABLE_FUZZ)
   target_link_libraries(fuzz_cboe_parser PRIVATE multifeed_core)
   target_compile_options(fuzz_cboe_parser PRIVATE -fsanitize=fuzzer,address,undefined)
   target_link_options(fuzz_cboe_parser PRIVATE -fsanitize=fuzzer,address,undefined)
+elseif(MF_ENABLE_FUZZ)
+  message(WARNING "MF_ENABLE_FUZZ requested but disabled: libFuzzer targets require Clang.")
 endif()
+
+function(mf_add_test test_name target_name label)
+  if(TARGET ${target_name})
+    add_test(NAME ${test_name} COMMAND ${target_name})
+    set_tests_properties(${test_name} PROPERTIES LABELS "${label}")
+  endif()
+endfunction()
+
+mf_add_test(parser_nasdaq_itch test_nasdaq_itch_parser parser)
+mf_add_test(parser_iex_deep test_iex_deep_parser parser)
+mf_add_test(parser_cboe_pitch test_cboe_pitch_parser parser)
+
+mf_add_test(phase2_sequence_tracker test_phase2_sequence_tracker phase2)
+mf_add_test(phase2_recovery_merge test_phase2_recovery_merge phase2)
+mf_add_test(phase2_recovery_simulator test_phase2_recovery_simulator phase2)
+mf_add_test(phase2_recovery_pending_dedupe test_phase2_recovery_pending_dedupe phase2)
+mf_add_test(phase2_determinism_crc test_phase2_determinism_crc phase2)
+mf_add_test(phase2_pipeline test_phase2_pipeline phase2)
+mf_add_test(phase2_jit_bridge test_phase2_jit_bridge phase2)
+mf_add_test(phase2_ab_arbiter test_phase2_ab_arbiter phase2)
+
+mf_add_test(phase3_feature_bridge test_phase3_feature_bridge phase3)
+mf_add_test(phase3_feature_pipeline test_phase3_feature_pipeline phase3)
+mf_add_test(phase3_order_book_nbbo test_phase3_order_book_nbbo phase3)
+
+mf_add_test(phase4_sim_matching_engine test_phase4_sim_matching_engine phase4)
+mf_add_test(phase4_market_making_strategy test_phase4_market_making_strategy phase4)
+mf_add_test(phase4_pnl_accountant test_phase4_pnl_accountant phase4)
+mf_add_test(phase4_backtest_runner test_phase4_backtest_runner phase4)
+
+mf_add_test(phase_b_framing test_phase_b_framing phase_b)
+mf_add_test(phase_b_udp_loopback test_phase_b_udp_loopback phase_b)
+mf_add_test(phase_b_ab_failover test_phase_b_ab_failover phase_b)
+mf_add_test(phase_b_burst_loss test_phase_b_burst_loss phase_b)
+
+mf_add_test(phase_c_journal_roundtrip test_phase_c_journal_roundtrip phase_c)
+mf_add_test(phase_c_journal_torn_record test_phase_c_journal_torn_record phase_c)
+mf_add_test(phase_c_replay_determinism test_phase_c_replay_determinism phase_c)
+mf_add_test(phase_c_journal_format_version test_phase_c_journal_format_version phase_c)
+mf_add_test(phase_c_mixed_event_replay test_phase_c_mixed_event_replay phase_c)
+
+mf_add_test(phase_d_cpu_affinity test_phase_d_cpu_affinity phase_d)
+mf_add_test(phase_d_numa test_phase_d_numa phase_d)
+mf_add_test(phase_d_hugepages test_phase_d_hugepages phase_d)
+mf_add_test(phase_d_spsc_external_storage test_phase_d_spsc_external_storage phase_d)
+
+mf_add_test(phase_e_histogram test_phase_e_histogram phase_e)
+mf_add_test(phase_e_run_metadata test_phase_e_run_metadata phase_e)
+mf_add_test(phase_e_sweep_smoke test_phase_e_sweep_smoke phase_e)
+
+mf_add_test(research_event_store test_research_event_store research)
+mf_add_test(research_simulation_clock test_research_simulation_clock research)
+mf_add_test(research_strategy_engine test_research_strategy_engine research)
+mf_add_test(research_experiment_runner test_research_experiment_runner research)

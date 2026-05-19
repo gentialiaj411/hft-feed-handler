@@ -57,13 +57,14 @@ int main() {
   const std::vector<mf::core::BookEvent> src{
       ev(mf::core::EventType::System, 1, 1),
       ev(mf::core::EventType::StockDirectory, 2, 2),
-      ev(mf::core::EventType::Add, 3, 3, mf::core::Side::Buy, 100, 200, 101),
-      ev(mf::core::EventType::Add, 4, 4, mf::core::Side::Sell, 102, 200, 102),
-      ev(mf::core::EventType::Replace, 5, 5, mf::core::Side::Buy, 101, 150, 201, 101),
-      ev(mf::core::EventType::Trade, 6, 6, mf::core::Side::Sell, 101, 80),
-      ev(mf::core::EventType::CrossTrade, 7, 7, mf::core::Side::Unknown, 101, 50),
-      ev(mf::core::EventType::Imbalance, 8, 8, mf::core::Side::Unknown, 0, 1000),
-      ev(mf::core::EventType::Delete, 9, 9, mf::core::Side::Unknown, 0, 0, 102),
+      ev(mf::core::EventType::Unknown, 3, 3),
+      ev(mf::core::EventType::Add, 4, 4, mf::core::Side::Buy, 100, 200, 101),
+      ev(mf::core::EventType::Add, 5, 5, mf::core::Side::Sell, 102, 200, 102),
+      ev(mf::core::EventType::Replace, 6, 6, mf::core::Side::Buy, 101, 150, 201, 101),
+      ev(mf::core::EventType::Trade, 7, 7, mf::core::Side::Sell, 101, 80),
+      ev(mf::core::EventType::CrossTrade, 8, 8, mf::core::Side::Unknown, 101, 50),
+      ev(mf::core::EventType::Imbalance, 9, 9, mf::core::Side::Unknown, 0, 1000),
+      ev(mf::core::EventType::Delete, 10, 10, mf::core::Side::Unknown, 0, 0, 102),
   };
 
   mf::journal::JournalWriter writer(1U << 16U, true);

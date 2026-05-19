@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
   const int reps = static_cast<int>(arg_u64(argc, argv, "--measured-reps", 5));
   auto meta = mf::bench::capture_run_metadata(argc, argv);
 
-  constexpr std::size_t kCap = 1U << 20U;
+  constexpr std::size_t kCap = 1U << 16U;
   std::vector<BenchOut> outs;
 
   outs.push_back(run_hist_bench("b1_feed_hot_path", events, warmups, reps, [](std::uint64_t n, mf::bench::LatencyHistogram& h) {

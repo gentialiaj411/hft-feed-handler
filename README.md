@@ -1,17 +1,36 @@
-# MultiFeed — Multi-Venue HFT Market Data Handler
+# MultiFeed - Multi-Venue HFT Market Data Handler
+
+## Scope
+Offline research pipeline. Parses NASDAQ ITCH 5.0, IEX DEEP+, and
+Cboe PITCH from recorded payloads into one canonical event model.
+Not a live-feed handler; not an exchange network stack; not a
+production trading platform.
 
 MultiFeed is a C++20 portfolio project that models a production-style market data pipeline across three venues without using live feeds. It focuses on deterministic replay, recovery behavior, and microstructure feature extraction under high-throughput constraints.
 
 ## Architecture
 
 ```text
-[ITCH 5.0 / IEX DEEP+ / Cboe PITCH parsers]
-                    ->
-[Phase 2: det. merge + gap recovery + A/B arbiter]
-                    ->
-[Phase 3: order book + NBBO + feature engine]
-                    ->
-[SPSCRingBuffer<FeatureVector>]
+raw payload bytes
+       |
+       v
+[venue parser: ITCH / DEEP+ / PITCH]
+       |
+       v   canonical mf::core::BookEvent
+[phase2: sequencing | gap recovery | A/B arbitration | deterministic merge]
+       |
+       v
+[phase3: order book -> NBBO consolidator -> feature pipeline]
+       |
+       v
+lock-free SPSC ring  ---->  [phase4: sim matching -> strategy -> PnL]
+                                  ^
+                                  |
+                  [journal writer/reader]  ---->  research:
+                                                  EventStore ->
+                                                  SimulationClock ->
+                                                  StrategyEngine ->
+                                                  ExperimentRunner
 ```
 
 ## Technical Highlights
@@ -40,14 +59,14 @@ cmake --build build -j
 
 ## Test & CI
 
-GitHub Actions workflow: `phase2-linux.yml`
+GitHub Actions workflow: `ci.yml`
 
 Pipeline stages:
 - build
-- unit tests
-- bench snapshot
-- determinism regression
-- A/B evidence (independent + complementary)
+- parser tests
+- phase 2 tests
+- phase C replay determinism test
+- parser fuzz smoke
 
 Local WSL2 test run:
 
@@ -67,27 +86,14 @@ bash scripts/run_phase2_tests_wsl.sh
 - Gap recovery uses a bounded deque store to cap memory growth while preserving near-term out-of-order recovery opportunity.
 - `force_advance` on `GapTooLarge` prevents venue progress deadlock and keeps the merged timeline moving under sustained loss.
 
-## Performance Evidence
+## Benchmarks
 
-Numbers below are from a single pinned core (`taskset -c 0`), Release build, WSL2 on Intel Core Ultra 9 275HX (24-core, ~16 GB RAM). `ticks_per_ns=1.0` means the bench fell back to `steady_clock` on WSL2; treat these as wall-ns upper bounds, not TSC-calibrated.
+- `bench/results/feature_latency_wsl2_<sha>.json`
+- `bench/results/feed_hot_path_wsl2_<sha>.json`
 
-### Feed hot-path (sequence tracking + SPSC ring, 2 M events)
+`ticks_per_ns=1.0` means the bench fell back to `steady_clock` on WSL2; treat these as wall-ns upper bounds, not TSC-calibrated.
 
-| Percentile | Latency |
-|---|---|
-| p50 | 79 ns |
-| p99 | 111 ns |
-| p99.9 | 246 ns |
-
-### Phase 3 feature engine (order book → NBBO → 6 features → ring publish, 1 M events)
-
-| Percentile | Latency |
-|---|---|
-| p50 | 431 ns |
-| p99 | 814 ns |
-| p99.9 | 11 111 ns |
-
-To reproduce:
+To reproduce locally:
 
 ```bash
 taskset -c 0 ./build/feed_hot_path_bench --events 2000000

@@ -18,6 +18,10 @@ void Pipeline::on_event(const mf::core::BookEvent& ev) {
   process_event(ev);
   auto recovered = recovery_sim_.drain_recovered();
   for (const auto& r : recovered) {
+    const auto& pending = pending_by_venue_[venue_index(r.venue)];
+    if (pending.find(r.sequence) != pending.end()) {
+      continue;
+    }
     process_event(r);
     ++stats_.recovery_reinjected;
   }

@@ -27,15 +27,23 @@ JournalReader::~JournalReader() { close(); }
 
 bool JournalReader::open(const std::string& path) {
   close();
+  had_error_ = false;
+  error_reason_ = nullptr;
+  error_offset_ = 0;
 #if !defined(__linux__)
   (void)path;
+  set_error("record_decode", 0);
   return false;
 #else
   fd_ = ::open(path.c_str(), O_RDONLY);
-  if (fd_ < 0) return false;
+  if (fd_ < 0) {
+    set_error("record_decode", 0);
+    return false;
+  }
 
   struct stat st {};
   if (::fstat(fd_, &st) != 0 || st.st_size < static_cast<off_t>(sizeof(JournalHeader))) {
+    set_error("unexpected_eof", 0);
     close();
     return false;
   }
@@ -43,12 +51,19 @@ bool JournalReader::open(const std::string& path) {
   size_ = static_cast<std::size_t>(st.st_size);
   void* mapped = ::mmap(nullptr, size_, PROT_READ, MAP_PRIVATE, fd_, 0);
   if (mapped == MAP_FAILED) {
+    set_error("record_decode", 0);
     close();
     return false;
   }
   base_ = reinterpret_cast<const std::byte*>(mapped);
   const auto* hdr = reinterpret_cast<const JournalHeader*>(base_);
-  if (hdr->magic != kJournalMagic || hdr->version != kJournalVersion) {
+  if (hdr->magic != kJournalMagic) {
+    set_error("header_magic", 0);
+    close();
+    return false;
+  }
+  if (hdr->version != kJournalVersion) {
+    set_error("header_version", 0);
     close();
     return false;
   }
@@ -78,6 +93,7 @@ bool JournalReader::next(mf::core::BookEvent& out, std::uint64_t& ingest_ts_ns, 
     const std::uint32_t crc = read_scalar<std::uint32_t>(rec + 20);
     if (len != kPayloadBytes || off_ + kRecBytes > size_) {
       ++stats_.crc_failures;
+      set_error((len != kPayloadBytes) ? "record_size" : "unexpected_eof", off_);
       off_ = size_;
       return false;
     }
@@ -87,6 +103,7 @@ bool JournalReader::next(mf::core::BookEvent& out, std::uint64_t& ingest_ts_ns, 
     stats_.bytes_read += kRecBytes;
     if (got != crc) {
       ++stats_.crc_failures;
+      set_error("record_crc", off_ - kRecBytes);
       continue;
     }
     std::memcpy(&out, payload, kPayloadBytes);
@@ -94,6 +111,9 @@ bool JournalReader::next(mf::core::BookEvent& out, std::uint64_t& ingest_ts_ns, 
     monotonic_seq = seq;
     ++stats_.records_read;
     return true;
+  }
+  if (off_ != size_) {
+    set_error("unexpected_eof", off_);
   }
   return false;
 #endif

@@ -89,6 +89,7 @@ int main(int argc, char** argv) {
   std::uint64_t messages_parsed = 0;
   std::uint64_t events_written = 0;
   std::uint64_t unhandled_msg_count = 0;
+  std::uint64_t last_exchange_ts_ns = 0;
 
   const auto t0 = std::chrono::steady_clock::now();
   std::array<std::uint8_t, 2> len_buf{};
@@ -127,7 +128,11 @@ int main(int argc, char** argv) {
 
     if (ev->type == mf::core::EventType::Unknown) {
       ++unhandled_msg_count;
-      continue;
+    }
+    if (ev->exchange_ts_ns == 0 && last_exchange_ts_ns != 0) {
+      ev->exchange_ts_ns = last_exchange_ts_ns;
+    } else if (ev->exchange_ts_ns != 0) {
+      last_exchange_ts_ns = ev->exchange_ts_ns;
     }
 
     writer.append(*ev, ev->ingest_ts_ns);

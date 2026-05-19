@@ -1,12 +1,17 @@
 # NEXT_TASK.md
 
 ## Current Priority
-Decide whether to use synthetic 2M evidence or obtain recorded market-tape evidence. `experiment_runner` now has a 2M synthetic canonical-event artifact with matching deterministic hashes across reruns, but no recorded venue-data experiment artifact exists.
+Validate expanded CI on GitHub and decide whether to scale beyond 5M recorded ITCH:
+- Push current branch and open/refresh PR so `.github/workflows/ci.yml` runs on GitHub-hosted `ubuntu-latest`.
+- Confirm configure/build, parser, phase 2, phase 3, phase 4, phase C, research, phase E, and fuzz smoke all pass at least once.
+- Push current branch and capture the first green GitHub Actions run for the expanded `ci.yml`.
+- Optional: run full-day recorded ITCH conversion/replay if you want claims beyond the current bounded 5M-event artifact.
+- Keep resume wording scoped to "5M recorded NASDAQ ITCH events" unless a larger/full-day artifact is added.
 
 ## Strict Scope
-- Keep next diffs focused on evidence capture and claim cleanup.
-- Do not make the determinism path depend on Phase B multicast or WSL2 cross-process networking.
-- Keep any "recorded market data" wording TODO/VERIFY until backed by a recorded-data artifact.
+- Keep next diffs focused on Linux validation, evidence capture, and claim cleanup.
+- Do not promote Phase D, Phase B multicast, or recorded-market-tape claims without artifacts.
+- Keep synthetic-versus-recorded wording explicit in resume-facing docs.
 
 ## Recommended Next Prompt For Claude
-"If recorded data is available, convert it into a canonical journal and run `experiment_runner` twice. If not, update resume wording to explicitly say synthetic 2M canonical-event journal, using `bench/results/experiment_synth2m_{a,b}.json` as evidence."
+"After this branch is pushed, check the first `ci.yml` run; if green, update CLAIMS_MATRIX.md with CI evidence and tighten README wording only where evidence changed."
