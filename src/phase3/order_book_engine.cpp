@@ -276,4 +276,21 @@ TopOfBook OrderBookEngine::top_of_book(mf::core::Venue venue, std::uint64_t symb
   return snapshot(*b);
 }
 
+BookSnapshot OrderBookEngine::snapshot(mf::core::Venue venue, std::uint64_t symbol_u64) const {
+  BookSnapshot out{};
+  const auto* b = find_book(venue, symbol_u64);
+  if (b == nullptr) {
+    return out;
+  }
+  out.bids.reserve(b->bids.size());
+  for (const auto& level : b->bids) {
+    out.bids.push_back(BookLevel{level.first, level.second});
+  }
+  out.asks.reserve(b->asks.size());
+  for (const auto& level : b->asks) {
+    out.asks.push_back(BookLevel{level.first, level.second});
+  }
+  return out;
+}
+
 }  // namespace mf::phase3

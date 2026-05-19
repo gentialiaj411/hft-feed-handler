@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "mf/core/types.hpp"
+#include "mf/phase3/book_snapshot.hpp"
 #include "mf/phase3/types.hpp"
 
 namespace mf::phase3 {
@@ -23,6 +24,7 @@ class OrderBookEngine {
 
   [[nodiscard]] ApplyResult on_event(const mf::core::BookEvent& ev) noexcept;
   [[nodiscard]] TopOfBook top_of_book(mf::core::Venue venue, std::uint64_t symbol_u64) const noexcept;
+  [[nodiscard]] BookSnapshot snapshot(mf::core::Venue venue, std::uint64_t symbol_u64) const;
 
  private:
   struct OrderRef {

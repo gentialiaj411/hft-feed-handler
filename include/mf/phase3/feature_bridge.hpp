@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "mf/core/spmc_seqlock_ring.hpp"
 #include "mf/core/spsc_ring.hpp"
 #include "mf/phase2/pipeline.hpp"
 #include "mf/phase3/feature_pipeline.hpp"
@@ -58,6 +59,23 @@ class RingFeaturePublisher final : public IFeaturePublisher {
 
  private:
   mf::core::SPSCRingBuffer<FeatureVector, Capacity>* ring_{nullptr};
+};
+
+template <std::size_t Capacity>
+class SpmcFeaturePublisher final : public IFeaturePublisher {
+ public:
+  explicit SpmcFeaturePublisher(mf::core::SPMCSeqlockRing<FeatureVector, Capacity>* ring)
+      : ring_(ring) {}
+
+  bool try_publish(const FeatureVector& fv) noexcept override {
+    if (ring_ == nullptr) {
+      return false;
+    }
+    return ring_->try_publish(fv);
+  }
+
+ private:
+  mf::core::SPMCSeqlockRing<FeatureVector, Capacity>* ring_{nullptr};
 };
 
 }  // namespace mf::phase3

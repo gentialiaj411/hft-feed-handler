@@ -1,0 +1,9 @@
+{
+  "runtime_environment": "WSL2",
+  "journal_path": "/tmp/mf_book_reconcile_synth_100k.journal",
+  "events_processed": 100000,
+  "snapshots_checked": 80,
+  "divergences": 0,
+  "snapshot_interval": 10000,
+  "metadata": {"git_sha":"bd267c4b0834c1f0cc3736b0ac4132ced4f78b68","build_type":"Release","cxx_flags":"15.2.0","host":"gentilaptop","cpu_model":" Intel(R) Core(TM) Ultra 9 275HX","cpu_count":24,"kernel":"6.6.114.1-microsoft-standard-WSL2","utc_timestamp":"20260519T200339Z","command_line":"/tmp/mdh-task3-book-build/book_reconcile --generate-synthetic --journal /tmp/mf_book_reconcile_synth_100k.journal --events 100000 --snapshot-interval 10000 --out /mnt/c/Users/bhask/Documents/PROJECTS/market-data-handler/bench/results/book_reconcile_bd267c4b0834.json"}
+}

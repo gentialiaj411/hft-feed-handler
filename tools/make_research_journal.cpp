@@ -1,4 +1,6 @@
 #include <cstdio>
+#include <algorithm>
+#include <array>
 #include <filesystem>
 #include <string>
 
@@ -24,9 +26,22 @@ bool has_flag(int argc, char** argv, const std::string& key) {
   return false;
 }
 
-mf::core::BookEvent make_event(std::uint64_t i) {
-  const std::uint64_t cycle = i / 6U;
-  const std::uint64_t step = i % 6U;
+mf::core::BookEvent make_event(std::uint64_t i, std::uint64_t symbol_count) {
+  static constexpr std::array<std::array<char, 8>, 8> kSymbols = {{
+      {'A', 'A', 'P', 'L', '0', '0', '0', '1'},
+      {'M', 'S', 'F', 'T', '0', '0', '0', '2'},
+      {'N', 'V', 'D', 'A', '0', '0', '0', '3'},
+      {'A', 'M', 'Z', 'N', '0', '0', '0', '4'},
+      {'G', 'O', 'O', 'G', '0', '0', '0', '5'},
+      {'M', 'E', 'T', 'A', '0', '0', '0', '6'},
+      {'T', 'S', 'L', 'A', '0', '0', '0', '7'},
+      {'A', 'M', 'D', '0', '0', '0', '0', '8'},
+  }};
+  const std::uint64_t effective_symbol_count = (symbol_count == 0) ? 1U : std::min<std::uint64_t>(symbol_count, kSymbols.size());
+  const std::uint64_t symbol_slot = i % effective_symbol_count;
+  const std::uint64_t cycle = i / (effective_symbol_count * 6U);
+  const std::uint64_t step = (i / effective_symbol_count) % 6U;
+  const std::size_t symbol_idx = static_cast<std::size_t>(symbol_slot);
   const std::uint32_t mid = 10000U + static_cast<std::uint32_t>(cycle % 97U);
   const std::uint64_t bid_order = 1 + (cycle * 2U);
   const std::uint64_t ask_order = bid_order + 1U;
@@ -36,7 +51,7 @@ mf::core::BookEvent make_event(std::uint64_t i) {
   ev.sequence = i + 1U;
   ev.exchange_ts_ns = i + 1U;
   ev.ingest_ts_ns = i + 1001U;
-  ev.symbol.bytes = {'A', 'A', 'P', 'L', ' ', ' ', ' ', ' '};
+  ev.symbol.bytes = kSymbols[symbol_idx];
   ev.qty = 100;
 
   if (step == 0U) {
@@ -84,6 +99,7 @@ int main(int argc, char** argv) {
 #else
   const std::string out = arg(argc, argv, "--out", "bench/results/research_2m.journal");
   const std::uint64_t events = arg_u64(argc, argv, "--events", 2'000'000ULL);
+  const std::uint64_t symbol_count = arg_u64(argc, argv, "--symbol-count", 1ULL);
   const bool fsync = has_flag(argc, argv, "--fsync");
 
   if (events == 0) {
@@ -104,15 +120,16 @@ int main(int argc, char** argv) {
 
   std::uint32_t crc = 0;
   for (std::uint64_t i = 0; i < events; ++i) {
-    const auto ev = make_event(i);
+    const auto ev = make_event(i, symbol_count);
     mf::core::update_crc_from_book_event(crc, ev);
     writer.append(ev, ev.ingest_ts_ns);
   }
   writer.close();
 
-  std::printf("journal=%s events=%llu input_crc=%u fsync=%s\n",
+  std::printf("journal=%s events=%llu symbol_count=%llu input_crc=%u fsync=%s\n",
               out.c_str(),
               static_cast<unsigned long long>(events),
+              static_cast<unsigned long long>(symbol_count),
               crc,
               fsync ? "true" : "false");
   return 0;
