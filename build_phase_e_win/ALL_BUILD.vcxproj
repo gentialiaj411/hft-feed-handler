@@ -182,6 +182,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{7FF2EA2C-701C-3DD3-9161-DEAE47DD6646}</Project>
       <Name>book_engine_bench</Name>
     </ProjectReference>
+    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\decoder_simd_bench.vcxproj">
+      <Project>{4C7AF4A0-16ED-332B-A49A-7BC56D1CBC03}</Project>
+      <Name>decoder_simd_bench</Name>
+    </ProjectReference>
     <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\feed_hot_path_bench.vcxproj">
       <Project>{0A4D08E1-B952-3B8F-B483-EE8C26E848B8}</Project>
       <Name>feed_hot_path_bench</Name>
@@ -214,6 +218,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{D304F648-5738-3FE3-B080-319EAAB7CF02}</Project>
       <Name>phase4_backtest</Name>
     </ProjectReference>
+    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\spmc_contention_bench.vcxproj">
+      <Project>{383E92CD-9A2C-3995-8F78-5BD16450382E}</Project>
+      <Name>spmc_contention_bench</Name>
+    </ProjectReference>
     <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\spmc_fanout_bench.vcxproj">
       <Project>{1D1C40AF-2555-3C1F-97BF-1E3B46488011}</Project>
       <Name>spmc_fanout_bench</Name>
@@ -233,6 +241,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_nasdaq_itch_parser.vcxproj">
       <Project>{A56D4138-9353-3535-99AF-89A247ED68A4}</Project>
       <Name>test_nasdaq_itch_parser</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_nasdaq_itch_simd_parser.vcxproj">
+      <Project>{7911D1EB-E591-31E0-B0D3-97712371E9CE}</Project>
+      <Name>test_nasdaq_itch_simd_parser</Name>
     </ProjectReference>
     <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase2_ab_arbiter.vcxproj">
       <Project>{AD7D906D-7E5D-3BCA-802D-F4FA8803DD5B}</Project>
