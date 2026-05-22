@@ -54,6 +54,12 @@ int main() {
 
   fv.exchange_ts_ns = 103;
   engine.on_feature(fv);
-  assert(sink.intents.size() == 8);
+  assert(sink.intents.size() == 9);
+  assert(sink.intents[6].action == mf::research::OrderAction::Cancel);
+  assert(sink.intents[6].order_id == sink.intents[5].order_id);
+  assert(sink.intents[7].action == mf::research::OrderAction::Submit);
+  assert(sink.intents[7].side == mf::phase4::OrderSide::Buy);
+  assert(sink.intents[8].action == mf::research::OrderAction::Submit);
+  assert(sink.intents[8].side == mf::phase4::OrderSide::Sell);
   return 0;
 }
