@@ -21,7 +21,7 @@ jobs:
         env:
           CC: clang
           CXX: clang++
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMF_ENABLE_FUZZ=ON
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMF_ENABLE_FUZZ=ON
 
       - name: Build
         run: cmake --build build -j

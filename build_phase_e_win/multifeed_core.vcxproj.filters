@@ -31,6 +31,12 @@
     <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\order_book_engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\intrusive_order_book.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\book_snapshot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\nbbo_consolidator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

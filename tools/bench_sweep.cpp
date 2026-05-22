@@ -2,6 +2,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -137,29 +138,29 @@ int main(int argc, char** argv) {
   std::vector<BenchOut> outs;
 
   outs.push_back(run_hist_bench("b1_feed_hot_path", events, warmups, reps, [](std::uint64_t n, mf::bench::LatencyHistogram& h) {
-    mf::core::SPSCRingBuffer<mf::core::BookEvent, kCap> ring;
+    auto ring = std::make_unique<mf::core::SPSCRingBuffer<mf::core::BookEvent, kCap>>();
     mf::phase2::MultiVenueSequenceTracker seq(256);
     mf::core::BookEvent tmp{};
     for (std::uint64_t i = 0; i < n; ++i) {
       auto ev = make_event(i);
       const auto t0 = mf::core::monotonic_raw_now_ns();
       const auto st = seq.on_sequence(ev.venue, ev.sequence);
-      if (st.status == mf::phase2::SequenceStatus::InOrder) (void)ring.try_push(ev);
-      while (ring.try_pop(tmp)) {}
+      if (st.status == mf::phase2::SequenceStatus::InOrder) (void)ring->try_push(ev);
+      while (ring->try_pop(tmp)) {}
       h.record(mf::core::monotonic_raw_now_ns() - t0);
     }
   }));
 
   outs.push_back(run_hist_bench("b2_feature_latency", events, warmups, reps, [](std::uint64_t n, mf::bench::LatencyHistogram& h) {
-    mf::core::SPSCRingBuffer<mf::phase3::FeatureVector, kCap> ring;
-    mf::phase3::RingFeaturePublisher<kCap> pub(&ring);
+    auto ring = std::make_unique<mf::core::SPSCRingBuffer<mf::phase3::FeatureVector, kCap>>();
+    mf::phase3::RingFeaturePublisher<kCap> pub(ring.get());
     mf::phase3::FeatureBridge bridge(&pub);
     mf::phase3::FeatureVector fv{};
     for (std::uint64_t i = 0; i < n; ++i) {
       auto ev = make_event(i);
       const auto t0 = mf::core::monotonic_raw_now_ns();
       bridge.on_merged_event(ev);
-      while (ring.try_pop(fv)) {}
+      while (ring->try_pop(fv)) {}
       h.record(mf::core::monotonic_raw_now_ns() - t0);
     }
   }));

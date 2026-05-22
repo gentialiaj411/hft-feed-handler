@@ -148,12 +148,13 @@ OrderBookEngine::OrderRef* OrderBookEngine::find_order(std::uint64_t key) noexce
   return nullptr;
 }
 
-void OrderBookEngine::put_order(std::uint64_t key, const OrderRef& value) noexcept {
+bool OrderBookEngine::put_order(std::uint64_t key, const OrderRef& value) noexcept {
   if (order_count_ > (orders_.size() / 2U)) {
 #ifndef NDEBUG
     assert(false && "order table hard limit: live orders must stay at or below 50% load");
 #endif
-    return;
+    ++dropped_order_inserts_;
+    return false;
   }
   std::size_t idx = static_cast<std::size_t>(mix_key(key)) & order_mask_;
   std::size_t first_tombstone = orders_.size();
@@ -161,7 +162,7 @@ void OrderBookEngine::put_order(std::uint64_t key, const OrderRef& value) noexce
     auto& slot = orders_[idx];
     if (slot.state == 1U && slot.key == key) {
       slot.value = value;
-      return;
+      return true;
     }
     if (slot.state == 2U && first_tombstone == orders_.size()) {
       first_tombstone = idx;
@@ -172,10 +173,12 @@ void OrderBookEngine::put_order(std::uint64_t key, const OrderRef& value) noexce
       target.value = value;
       target.state = 1U;
       ++order_count_;
-      return;
+      return true;
     }
     idx = (idx + 1U) & order_mask_;
   }
+  ++dropped_order_inserts_;
+  return false;
 }
 
 void OrderBookEngine::erase_order(std::uint64_t key) noexcept {
@@ -213,7 +216,7 @@ OrderBookEngine::ApplyResult OrderBookEngine::on_event(const mf::core::BookEvent
       add_qty(book.asks, ev.price, ev.qty, /*descending=*/false);
     }
     if (ev.order_id != 0) {
-      put_order(
+      out.order_table_saturated = !put_order(
           order_key(ev.venue, ev.order_id),
           OrderRef{ev.venue, symbol, ev.side, ev.price, ev.qty, out.queue_ahead_before_add});
     }
@@ -252,7 +255,8 @@ OrderBookEngine::ApplyResult OrderBookEngine::on_event(const mf::core::BookEvent
       add_qty(book.asks, ev.price, ev.qty, /*descending=*/false);
     }
     if (ev.order_id != 0) {
-      put_order(order_key(ev.venue, ev.order_id), OrderRef{ev.venue, symbol, ev.side, ev.price, ev.qty, 0.0});
+      out.order_table_saturated =
+          !put_order(order_key(ev.venue, ev.order_id), OrderRef{ev.venue, symbol, ev.side, ev.price, ev.qty, 0.0});
     }
   }
 

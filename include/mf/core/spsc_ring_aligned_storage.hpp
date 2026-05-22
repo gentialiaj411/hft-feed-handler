@@ -40,11 +40,14 @@ struct SpscRingDeleter {
       for (std::size_t i = 0; i < Size; ++i) {
         typed[i].~T();
       }
+#if defined(__linux__)
       if (use_huge) {
         mf::os::munmap_hugepages({storage, bytes, mf::os::HugepagePath::None});
       } else if (use_numa) {
         mf::os::numa_free(storage, bytes);
-      } else {
+      } else
+#endif
+      {
         ::operator delete(storage, std::align_val_t{alignof(T)});
       }
     }
@@ -66,6 +69,7 @@ SpscRingPtr<T, Size> make_spsc_ring_on_node(int numa_node, bool try_hugepages, S
   SpscRingDeleter<T, Size> deleter{};
 
   if (try_hugepages) {
+#if defined(__linux__)
     auto hp = mf::os::mmap_hugepages(kBytes);
     if (hp.ptr != nullptr) {
       storage = hp.ptr;
@@ -74,8 +78,12 @@ SpscRingPtr<T, Size> make_spsc_ring_on_node(int numa_node, bool try_hugepages, S
       deleter.use_huge = true;
       info_out.kind = (hp.path == mf::os::HugepagePath::MapHugeTlb) ? SpscBackingKind::HugeTlb : SpscBackingKind::MadviseHuge;
     }
+#else
+    (void)try_hugepages;
+#endif
   }
   if (storage == nullptr) {
+#if defined(__linux__)
     storage = mf::os::numa_alloc_on_node(kBytes, numa_node);
     if (storage != nullptr) {
       deleter.storage = storage;
@@ -83,6 +91,9 @@ SpscRingPtr<T, Size> make_spsc_ring_on_node(int numa_node, bool try_hugepages, S
       deleter.use_numa = true;
       info_out.kind = mf::os::numa_available() ? SpscBackingKind::Numa : SpscBackingKind::Heap;
     }
+#else
+    (void)numa_node;
+#endif
   }
   if (storage == nullptr) {
     storage = ::operator new(kBytes, std::align_val_t{alignof(T)});

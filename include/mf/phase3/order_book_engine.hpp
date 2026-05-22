@@ -18,6 +18,7 @@ class OrderBookEngine {
 
   struct ApplyResult {
     bool changed_top{false};
+    bool order_table_saturated{false};
     double queue_ahead_before_add{0.0};
     TopOfBook top_after{};
   };
@@ -25,6 +26,8 @@ class OrderBookEngine {
   [[nodiscard]] ApplyResult on_event(const mf::core::BookEvent& ev) noexcept;
   [[nodiscard]] TopOfBook top_of_book(mf::core::Venue venue, std::uint64_t symbol_u64) const noexcept;
   [[nodiscard]] BookSnapshot snapshot(mf::core::Venue venue, std::uint64_t symbol_u64) const;
+  [[nodiscard]] std::size_t live_order_count() const noexcept { return order_count_; }
+  [[nodiscard]] std::uint64_t dropped_order_inserts() const noexcept { return dropped_order_inserts_; }
 
  private:
   struct OrderRef {
@@ -59,13 +62,14 @@ class OrderBookEngine {
   VenueBook& book_for(mf::core::Venue venue, std::uint64_t symbol_u64);
   const VenueBook* find_book(mf::core::Venue venue, std::uint64_t symbol_u64) const noexcept;
   OrderRef* find_order(std::uint64_t key) noexcept;
-  void put_order(std::uint64_t key, const OrderRef& value) noexcept;
+  bool put_order(std::uint64_t key, const OrderRef& value) noexcept;
   void erase_order(std::uint64_t key) noexcept;
 
   std::array<std::unordered_map<std::uint64_t, VenueBook>, 3> books_{};
   std::vector<OrderSlot> orders_{};
   std::size_t order_mask_{0};
   std::size_t order_count_{0};
+  std::uint64_t dropped_order_inserts_{0};
   std::array<std::uint64_t, 3> cached_symbols_{};
   std::array<VenueBook*, 3> cached_books_{};
   std::array<bool, 3> cached_valid_{};

@@ -3,9 +3,6 @@
   <PropertyGroup>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
-  <PropertyGroup>
-    <ResolveNugetPackages>false</ResolveNugetPackages>
-  </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -25,31 +22,31 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{89433E06-D280-3521-99BC-7D546CB25680}</ProjectGuid>
+    <ProjectGuid>{577489A5-2F09-36A6-A9EF-2389C86FC11B}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
     <Platform>x64</Platform>
-    <ProjectName>ALL_BUILD</ProjectName>
+    <ProjectName>test_phase2_recovery_pending_dedupe</ProjectName>
     <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
@@ -62,50 +59,256 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">test_phase2_recovery_pending_dedupe.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">test_phase2_recovery_pending_dedupe</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">test_phase2_recovery_pending_dedupe.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">test_phase2_recovery_pending_dedupe</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">test_phase2_recovery_pending_dedupe.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">test_phase2_recovery_pending_dedupe</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">test_phase2_recovery_pending_dedupe.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">test_phase2_recovery_pending_dedupe</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /FS</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
+    <Link>
+      <AdditionalDependencies>Debug\multifeed_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win/Debug/test_phase2_recovery_pending_dedupe.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win/Debug/test_phase2_recovery_pending_dedupe.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /FS</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
+    <Link>
+      <AdditionalDependencies>Release\multifeed_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win/Release/test_phase2_recovery_pending_dedupe.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win/Release/test_phase2_recovery_pending_dedupe.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /FS</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
+    <Link>
+      <AdditionalDependencies>MinSizeRel\multifeed_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win/MinSizeRel/test_phase2_recovery_pending_dedupe.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win/MinSizeRel/test_phase2_recovery_pending_dedupe.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /FS</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\bhask\Documents\PROJECTS\market-data-handler\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
+    <Link>
+      <AdditionalDependencies>RelWithDebInfo\multifeed_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win/RelWithDebInfo/test_phase2_recovery_pending_dedupe.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/bhask/Documents/PROJECTS/market-data-handler/build_phase_e_win/RelWithDebInfo/test_phase2_recovery_pending_dedupe.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CustomBuild Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\CMakeLists.txt">
@@ -165,6 +368,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\tests\test_phase2_recovery_pending_dedupe.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -174,165 +378,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\bench_sweep.vcxproj">
-      <Project>{139BD885-AA4C-37B6-B2B3-643EDA731BAF}</Project>
-      <Name>bench_sweep</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\book_engine_bench.vcxproj">
-      <Project>{7FF2EA2C-701C-3DD3-9161-DEAE47DD6646}</Project>
-      <Name>book_engine_bench</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\feed_hot_path_bench.vcxproj">
-      <Project>{0A4D08E1-B952-3B8F-B483-EE8C26E848B8}</Project>
-      <Name>feed_hot_path_bench</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\latency_stage_bench.vcxproj">
-      <Project>{0671694B-F9A6-3D3D-9A59-A0142EAF0605}</Project>
-      <Name>latency_stage_bench</Name>
-    </ProjectReference>
     <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\multifeed_core.vcxproj">
       <Project>{4A2FDAED-12A5-39F7-86B5-045F17BA90A3}</Project>
       <Name>multifeed_core</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\phase1_parser_validate.vcxproj">
-      <Project>{5CF117B5-5BCE-314D-AAA1-51F4D40CAA2F}</Project>
-      <Name>phase1_parser_validate</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\phase2_ab_evidence.vcxproj">
-      <Project>{77AC2B34-7FAA-3526-8CA7-5648B978AFE9}</Project>
-      <Name>phase2_ab_evidence</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\phase2_pipeline_bench.vcxproj">
-      <Project>{B5887FD9-A6C7-31A6-8820-9F8C401637E4}</Project>
-      <Name>phase2_pipeline_bench</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\phase3_feature_latency_bench.vcxproj">
-      <Project>{CC9362C2-35D3-34CB-BA3E-80EC0B6B6123}</Project>
-      <Name>phase3_feature_latency_bench</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\phase4_backtest.vcxproj">
-      <Project>{D304F648-5738-3FE3-B080-319EAAB7CF02}</Project>
-      <Name>phase4_backtest</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\spmc_fanout_bench.vcxproj">
-      <Project>{1D1C40AF-2555-3C1F-97BF-1E3B46488011}</Project>
-      <Name>spmc_fanout_bench</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_cboe_pitch_parser.vcxproj">
-      <Project>{37BFF564-6DB3-3EA6-B0D0-97E668618632}</Project>
-      <Name>test_cboe_pitch_parser</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_core_spmc_seqlock_ring.vcxproj">
-      <Project>{67E1A09F-1A74-3765-BB26-B769135B8FD3}</Project>
-      <Name>test_core_spmc_seqlock_ring</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_iex_deep_parser.vcxproj">
-      <Project>{B3115979-6424-3360-94DC-79A85CB2F9D6}</Project>
-      <Name>test_iex_deep_parser</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_nasdaq_itch_parser.vcxproj">
-      <Project>{A56D4138-9353-3535-99AF-89A247ED68A4}</Project>
-      <Name>test_nasdaq_itch_parser</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase2_ab_arbiter.vcxproj">
-      <Project>{AD7D906D-7E5D-3BCA-802D-F4FA8803DD5B}</Project>
-      <Name>test_phase2_ab_arbiter</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase2_determinism_crc.vcxproj">
-      <Project>{F8BA938E-045D-32F6-930E-DE40856853FB}</Project>
-      <Name>test_phase2_determinism_crc</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase2_jit_bridge.vcxproj">
-      <Project>{292ABBAB-8DFA-3427-9CF7-0B063B454837}</Project>
-      <Name>test_phase2_jit_bridge</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase2_pipeline.vcxproj">
-      <Project>{FF843D05-14A9-34BE-939D-923939B1EC97}</Project>
-      <Name>test_phase2_pipeline</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase2_recovery_merge.vcxproj">
-      <Project>{ADA46B6F-F393-36C5-99B9-422235DC229F}</Project>
-      <Name>test_phase2_recovery_merge</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase2_recovery_pending_dedupe.vcxproj">
-      <Project>{577489A5-2F09-36A6-A9EF-2389C86FC11B}</Project>
-      <Name>test_phase2_recovery_pending_dedupe</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase2_recovery_simulator.vcxproj">
-      <Project>{C196E451-4C32-3448-94CA-41350BA3D4FE}</Project>
-      <Name>test_phase2_recovery_simulator</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase2_sequence_tracker.vcxproj">
-      <Project>{35E43B6F-96DA-313B-A232-1F1AD8EEFB21}</Project>
-      <Name>test_phase2_sequence_tracker</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase3_book_reconciliation.vcxproj">
-      <Project>{9C4FAAA9-FE36-3F64-9F0F-192677E8AA20}</Project>
-      <Name>test_phase3_book_reconciliation</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase3_book_snapshot.vcxproj">
-      <Project>{1B3353F2-93A9-39A4-9D07-7278069D39BD}</Project>
-      <Name>test_phase3_book_snapshot</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase3_feature_bridge.vcxproj">
-      <Project>{0D3AA276-B378-356A-AA4A-A0DE536DD51F}</Project>
-      <Name>test_phase3_feature_bridge</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase3_feature_pipeline.vcxproj">
-      <Project>{89CCF7B0-81D1-3C8A-9DA2-B10576838D6F}</Project>
-      <Name>test_phase3_feature_pipeline</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase3_intrusive_order_book.vcxproj">
-      <Project>{45CBE5D9-FDC2-3A6C-A60B-7C7A2583F843}</Project>
-      <Name>test_phase3_intrusive_order_book</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase3_order_book_nbbo.vcxproj">
-      <Project>{7DB1132A-66B9-3885-8EE0-37465F220A00}</Project>
-      <Name>test_phase3_order_book_nbbo</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase4_backtest_runner.vcxproj">
-      <Project>{2545F485-C614-3CF7-A53F-FFDA4E7C39D3}</Project>
-      <Name>test_phase4_backtest_runner</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase4_market_making_strategy.vcxproj">
-      <Project>{924CC5AF-D80E-388D-A2A8-ECF23FCE527F}</Project>
-      <Name>test_phase4_market_making_strategy</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase4_pnl_accountant.vcxproj">
-      <Project>{E0FE814A-C151-3629-844F-9D76CE621FE2}</Project>
-      <Name>test_phase4_pnl_accountant</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase4_sim_matching_engine.vcxproj">
-      <Project>{5250860A-627E-35FC-BDA5-B61CFCF2538D}</Project>
-      <Name>test_phase4_sim_matching_engine</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase_e_histogram.vcxproj">
-      <Project>{22436CF9-3FF4-324F-8CA9-A5F23C9643FE}</Project>
-      <Name>test_phase_e_histogram</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase_e_run_metadata.vcxproj">
-      <Project>{B355B42C-CB0F-3748-AACA-83E9A08E928D}</Project>
-      <Name>test_phase_e_run_metadata</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_phase_e_sweep_smoke.vcxproj">
-      <Project>{9425A5EB-BE3D-3176-8253-96B8C4C903AF}</Project>
-      <Name>test_phase_e_sweep_smoke</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_research_simulation_clock.vcxproj">
-      <Project>{1F580E45-CE69-3E57-B42F-9BF941D9CF32}</Project>
-      <Name>test_research_simulation_clock</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_research_strategy_engine.vcxproj">
-      <Project>{75E661D9-C1CA-39E9-B5D7-09E05AB11D7E}</Project>
-      <Name>test_research_strategy_engine</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_runtime_shard_router.vcxproj">
-      <Project>{2349511E-D316-31CC-95B6-7B8CF653ABB4}</Project>
-      <Name>test_runtime_shard_router</Name>
-    </ProjectReference>
-    <ProjectReference Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\build_phase_e_win\test_runtime_sharded_pipeline_determinism.vcxproj">
-      <Project>{97A8CE06-6E1A-3C11-A771-542ADC27B535}</Project>
-      <Name>test_runtime_sharded_pipeline_determinism</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

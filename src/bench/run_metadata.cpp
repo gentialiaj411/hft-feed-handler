@@ -49,12 +49,31 @@ std::string run_cmd(const char* cmd) {
 #endif
   return trim(out);
 }
+
+std::string json_escape(const std::string& s) {
+  std::ostringstream os;
+  for (const char c : s) {
+    switch (c) {
+      case '\\': os << "\\\\"; break;
+      case '"': os << "\\\""; break;
+      case '\n': os << "\\n"; break;
+      case '\r': os << "\\r"; break;
+      case '\t': os << "\\t"; break;
+      default: os << c; break;
+    }
+  }
+  return os.str();
+}
 }  // namespace
 
 RunMetadata capture_run_metadata(int argc, char** argv) {
   RunMetadata m{};
   m.utc_timestamp = utc_stamp();
+#if defined(_WIN32)
+  m.git_sha = run_cmd("git rev-parse HEAD 2>NUL");
+#else
   m.git_sha = run_cmd("git rev-parse HEAD 2> /dev/null");
+#endif
   if (m.git_sha.empty()) m.git_sha = "unknown";
   m.build_type =
 #if defined(NDEBUG)
@@ -105,15 +124,15 @@ RunMetadata capture_run_metadata(int argc, char** argv) {
 std::string run_metadata_to_json(const RunMetadata& m) {
   std::ostringstream os;
   os << "{"
-     << "\"git_sha\":\"" << m.git_sha << "\","
-     << "\"build_type\":\"" << m.build_type << "\","
-     << "\"cxx_flags\":\"" << m.cxx_flags << "\","
-     << "\"host\":\"" << m.host << "\","
-     << "\"cpu_model\":\"" << m.cpu_model << "\","
+     << "\"git_sha\":\"" << json_escape(m.git_sha) << "\","
+     << "\"build_type\":\"" << json_escape(m.build_type) << "\","
+     << "\"cxx_flags\":\"" << json_escape(m.cxx_flags) << "\","
+     << "\"host\":\"" << json_escape(m.host) << "\","
+     << "\"cpu_model\":\"" << json_escape(m.cpu_model) << "\","
      << "\"cpu_count\":" << m.cpu_count << ","
-     << "\"kernel\":\"" << m.kernel << "\","
-     << "\"utc_timestamp\":\"" << m.utc_timestamp << "\","
-     << "\"command_line\":\"" << m.command_line << "\""
+     << "\"kernel\":\"" << json_escape(m.kernel) << "\","
+     << "\"utc_timestamp\":\"" << json_escape(m.utc_timestamp) << "\","
+     << "\"command_line\":\"" << json_escape(m.command_line) << "\""
      << "}";
   return os.str();
 }

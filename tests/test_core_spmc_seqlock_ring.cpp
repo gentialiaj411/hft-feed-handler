@@ -2,6 +2,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include <random>
 #include <thread>
 #include <vector>
@@ -41,36 +42,36 @@ bool valid_payload(const Payload& p) {
 }
 
 void test_single_consumer_parity() {
-  mf::core::SPMCSeqlockRing<Payload, 1024> ring;
+  auto ring = std::make_unique<mf::core::SPMCSeqlockRing<Payload, 1024>>();
   mf::core::SpmcReaderCursor cursor{};
 
   for (std::uint64_t i = 0; i < 512; ++i) {
-    assert(ring.try_publish(make_payload(i)));
+    assert(ring->try_publish(make_payload(i)));
   }
 
   for (std::uint64_t i = 0; i < 512; ++i) {
     Payload out{};
-    const auto result = ring.try_read_next(cursor, out);
+    const auto result = ring->try_read_next(cursor, out);
     assert(result.status == mf::core::SpmcReadStatus::Success);
     assert(out.sequence == i);
     assert(valid_payload(out));
   }
 
   Payload out{};
-  assert(ring.try_read_next(cursor, out).status == mf::core::SpmcReadStatus::Empty);
+  assert(ring->try_read_next(cursor, out).status == mf::core::SpmcReadStatus::Empty);
 }
 
 void test_multi_consumer_fanout() {
-  mf::core::SPMCSeqlockRing<Payload, 2048> ring;
+  auto ring = std::make_unique<mf::core::SPMCSeqlockRing<Payload, 2048>>();
   for (std::uint64_t i = 0; i < 1024; ++i) {
-    assert(ring.try_publish(make_payload(i)));
+    assert(ring->try_publish(make_payload(i)));
   }
 
   for (int reader = 0; reader < 4; ++reader) {
     mf::core::SpmcReaderCursor cursor{};
     for (std::uint64_t i = 0; i < 1024; ++i) {
       Payload out{};
-      const auto result = ring.try_read_next(cursor, out);
+      const auto result = ring->try_read_next(cursor, out);
       assert(result.status == mf::core::SpmcReadStatus::Success);
       assert(out.sequence == i);
       assert(valid_payload(out));
@@ -79,20 +80,20 @@ void test_multi_consumer_fanout() {
 }
 
 void test_overrun_behavior() {
-  mf::core::SPMCSeqlockRing<Payload, 4> ring;
+  auto ring = std::make_unique<mf::core::SPMCSeqlockRing<Payload, 4>>();
   mf::core::SpmcReaderCursor cursor{};
   for (std::uint64_t i = 0; i < 10; ++i) {
-    assert(ring.try_publish(make_payload(i)));
+    assert(ring->try_publish(make_payload(i)));
   }
 
   Payload out{};
-  const auto overrun = ring.try_read_next(cursor, out);
+  const auto overrun = ring->try_read_next(cursor, out);
   assert(overrun.status == mf::core::SpmcReadStatus::Overrun);
   assert(cursor.next_sequence == 6);
   assert(cursor.overruns == 6);
 
   for (std::uint64_t i = 6; i < 10; ++i) {
-    const auto result = ring.try_read_next(cursor, out);
+    const auto result = ring->try_read_next(cursor, out);
     assert(result.status == mf::core::SpmcReadStatus::Success);
     assert(out.sequence == i);
     assert(valid_payload(out));
@@ -102,7 +103,7 @@ void test_overrun_behavior() {
 void run_stress_once(std::uint32_t seed) {
   constexpr std::uint64_t kEvents = 4096;
   constexpr int kReaders = 8;
-  mf::core::SPMCSeqlockRing<Payload, 8192> ring;
+  auto ring = std::make_unique<mf::core::SPMCSeqlockRing<Payload, 8192>>();
   std::atomic<bool> start{false};
   std::atomic<bool> writer_done{false};
   std::atomic<std::uint64_t> invalid_reads{0};
@@ -118,9 +119,9 @@ void run_stress_once(std::uint32_t seed) {
         std::this_thread::yield();
       }
       mf::core::SpmcReaderCursor cursor{};
-      while (!writer_done.load(std::memory_order_acquire) || cursor.next_sequence < ring.published_sequence()) {
+      while (!writer_done.load(std::memory_order_acquire) || cursor.next_sequence < ring->published_sequence()) {
         Payload out{};
-        const auto result = ring.try_read_next(cursor, out);
+        const auto result = ring->try_read_next(cursor, out);
         if (result.status == mf::core::SpmcReadStatus::Success) {
           if (!valid_payload(out)) {
             invalid_reads.fetch_add(1, std::memory_order_relaxed);
@@ -146,7 +147,7 @@ void run_stress_once(std::uint32_t seed) {
   std::thread writer([&]() {
     start.store(true, std::memory_order_release);
     for (std::uint64_t i = 0; i < kEvents; ++i) {
-      assert(ring.try_publish(make_payload(i, seed)));
+      assert(ring->try_publish(make_payload(i, seed)));
       if ((i & 63ULL) == 0ULL) {
         std::this_thread::yield();
       }

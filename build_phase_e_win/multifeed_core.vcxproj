@@ -318,6 +318,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase2\recovery_simulator.cpp" />
     <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase2\sequence_tracker.cpp" />
     <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\order_book_engine.cpp" />
+    <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\intrusive_order_book.cpp" />
+    <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\book_snapshot.cpp" />
     <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\nbbo_consolidator.cpp" />
     <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\feature_pipeline.cpp" />
     <ClCompile Include="C:\Users\bhask\Documents\PROJECTS\market-data-handler\src\phase3\feature_bridge.cpp" />
