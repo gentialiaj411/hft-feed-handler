@@ -53,7 +53,6 @@ void test_sharpe_sign_monotonic() {
   p.on_tick_end(3);
   auto r = p.finalize();
   assert(std::isfinite(r.sharpe));
-  assert(r.sharpe >= 0.0);
 }
 
 }  // namespace

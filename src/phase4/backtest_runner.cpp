@@ -14,6 +14,7 @@ void BacktestRunner::EngineRouter::submit(
   }
   (*order_to_symbol_)[order_id] = symbol_u64;
   pnl_->on_order_submitted();
+  engine_->bind_order_symbol(order_id, symbol_u64);
   engine_->submit(side, price, qty, order_id, ts_ns);
 }
 
