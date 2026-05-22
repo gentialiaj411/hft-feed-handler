@@ -101,14 +101,18 @@ int main() {
   dst.sin_family = AF_INET;
   dst.sin_port = htons(port);
   dst.sin_addr.s_addr = ::inet_addr(group);
-  for (int i = 0; i < kN; ++i) {
-    auto p = make_pkt(static_cast<std::uint64_t>(i + 1));
-    (void)::sendto(tx, p.data(), p.size(), 0, reinterpret_cast<sockaddr*>(&dst), sizeof(dst));
-  }
-  ::close(tx);
 
   mf::wire::WireEventLoop loop;
   assert(loop.add_session(&session));
+  for (int i = 0; i < kN; ++i) {
+    auto p = make_pkt(static_cast<std::uint64_t>(i + 1));
+    (void)::sendto(tx, p.data(), p.size(), 0, reinterpret_cast<sockaddr*>(&dst), sizeof(dst));
+    if ((i & 255) == 255) {
+      loop.run_for(std::chrono::milliseconds(2));
+    }
+  }
+  ::close(tx);
+
   for (int i = 0; i < 400 && live_sink.merged.size() < static_cast<std::size_t>(kN); ++i) {
     loop.run_for(std::chrono::milliseconds(5));
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
