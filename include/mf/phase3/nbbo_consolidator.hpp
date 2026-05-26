@@ -14,7 +14,17 @@ class NbboConsolidator {
   NbboConsolidator();
 
   [[nodiscard]] bool update(std::uint64_t symbol_u64, mf::core::Venue venue, const TopOfBook& top) noexcept;
+  [[nodiscard]] bool update(
+      std::uint64_t symbol_u64,
+      mf::core::Venue venue,
+      const TopOfBook& top,
+      std::uint64_t venue_sequence) noexcept;
   [[nodiscard]] Nbbo update_and_current(std::uint64_t symbol_u64, mf::core::Venue venue, const TopOfBook& top) noexcept;
+  [[nodiscard]] Nbbo update_and_current(
+      std::uint64_t symbol_u64,
+      mf::core::Venue venue,
+      const TopOfBook& top,
+      std::uint64_t venue_sequence) noexcept;
   [[nodiscard]] Nbbo current(std::uint64_t symbol_u64) const noexcept;
 
  private:
@@ -25,6 +35,8 @@ class NbboConsolidator {
     std::uint32_t bid_qty{0};
     std::uint32_t ask_price{0};
     std::uint32_t ask_qty{0};
+    std::uint64_t bid_sequence{0};
+    std::uint64_t ask_sequence{0};
   };
   struct SymbolState {
     std::array<VenueTop, 3> venues{};

@@ -35,9 +35,6 @@ bool DeterministicMerger::less_event(const mf::core::BookEvent& a, const mf::cor
 
 bool DeterministicMerger::push(const mf::core::BookEvent& ev) noexcept {
   auto& q = queues_[index_for(ev.venue)];
-  if (per_venue_capacity_ != 0 && q.size() >= per_venue_capacity_) {
-    return false;
-  }
   q.push_back(ev);
   return true;
 }

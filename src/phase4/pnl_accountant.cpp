@@ -12,7 +12,7 @@ void PnlAccountant::on_order_submitted() {
   ++submitted_orders_;
 }
 
-void PnlAccountant::on_fill(std::uint64_t symbol_u64, const Fill& fill) {
+void PnlAccountant::on_fill(std::uint64_t symbol_u64, const Fill& fill, bool taker) {
   auto& st = by_symbol_[symbol_u64];
   const double px = static_cast<double>(fill.price);
   const double qty = static_cast<double>(fill.qty);
@@ -41,6 +41,11 @@ void PnlAccountant::on_fill(std::uint64_t symbol_u64, const Fill& fill) {
   st.gross_volume += px * qty;
   ++st.fill_count;
   ++total_fills_;
+  if (taker) {
+    cumulative_fees_ += cfg_.taker_fee_per_share * qty;
+  } else {
+    cumulative_rebates_ += cfg_.maker_rebate_per_share * qty;
+  }
 }
 
 void PnlAccountant::on_feature(const mf::phase3::FeatureVector& fv) {
@@ -93,6 +98,9 @@ PnlAccountant::Report PnlAccountant::finalize() const {
   r.max_drawdown = max_drawdown_;
   r.submitted_orders = submitted_orders_;
   r.fill_ratio = submitted_orders_ == 0 ? 0.0 : static_cast<double>(total_fills_) / static_cast<double>(submitted_orders_);
+  r.cumulative_fees = cumulative_fees_;
+  r.cumulative_rebates = cumulative_rebates_;
+  r.total_equity = r.total_equity - r.cumulative_fees + r.cumulative_rebates;
 
   if (n_returns_ > 1) {
     const double mean = sum_returns_ / static_cast<double>(n_returns_);

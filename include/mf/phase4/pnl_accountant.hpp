@@ -12,6 +12,8 @@ class PnlAccountant {
  public:
   struct Config {
     std::uint64_t sharpe_bucket_ns{1'000'000'000ULL};
+    double maker_rebate_per_share{0.0020};
+    double taker_fee_per_share{0.0030};
   };
 
   struct SymbolStats {
@@ -31,6 +33,8 @@ class PnlAccountant {
     double sharpe{0.0};
     double fill_ratio{0.0};
     double turnover{0.0};
+    double cumulative_fees{0.0};
+    double cumulative_rebates{0.0};
     std::uint64_t fills{0};
     std::uint64_t submitted_orders{0};
   };
@@ -38,7 +42,7 @@ class PnlAccountant {
   PnlAccountant();
   explicit PnlAccountant(Config cfg);
 
-  void on_fill(std::uint64_t symbol_u64, const Fill& fill);
+  void on_fill(std::uint64_t symbol_u64, const Fill& fill, bool taker = false);
   void on_feature(const mf::phase3::FeatureVector& fv);
   void on_order_submitted();
   void on_tick_end(std::uint64_t ts_ns);
@@ -70,6 +74,8 @@ class PnlAccountant {
   double sum_returns_{0.0};
   double sum_sq_returns_{0.0};
   std::uint64_t n_returns_{0};
+  double cumulative_fees_{0.0};
+  double cumulative_rebates_{0.0};
 };
 
 }  // namespace mf::phase4

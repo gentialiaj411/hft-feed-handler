@@ -137,6 +137,7 @@ int main(int argc, char** argv) {
   auto p50_values = samples;
   auto p99_values = samples;
   auto p999_values = samples;
+  auto p9999_values = samples;
   const auto max_value = *std::max_element(samples.begin(), samples.end());
   std::cout << "[feed_hot_path]\n";
   std::cout << "events=" << cfg.events << "\n";
@@ -147,6 +148,7 @@ int main(int argc, char** argv) {
   std::cout << "lat_ns_p50=" << pct(p50_values, 0.50) << "\n";
   std::cout << "lat_ns_p99=" << pct(p99_values, 0.99) << "\n";
   std::cout << "lat_ns_p999=" << pct(p999_values, 0.999) << "\n";
+  std::cout << "lat_ns_p9999=" << pct(p9999_values, 0.9999) << "\n";
   std::cout << "lat_ns_max=" << max_value << "\n";
   return 0;
 }

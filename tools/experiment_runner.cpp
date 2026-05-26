@@ -16,6 +16,24 @@ std::string arg(int argc, char** argv, const std::string& key, const std::string
   return dflt;
 }
 
+std::uint64_t arg_u64(int argc, char** argv, const std::string& key, std::uint64_t dflt) {
+  const std::string v = arg(argc, argv, key, "");
+  if (v.empty()) return dflt;
+  return static_cast<std::uint64_t>(std::stoull(v));
+}
+
+std::int64_t arg_i64(int argc, char** argv, const std::string& key, std::int64_t dflt) {
+  const std::string v = arg(argc, argv, key, "");
+  if (v.empty()) return dflt;
+  return static_cast<std::int64_t>(std::stoll(v));
+}
+
+double arg_f64(int argc, char** argv, const std::string& key, double dflt) {
+  const std::string v = arg(argc, argv, key, "");
+  if (v.empty()) return dflt;
+  return std::stod(v);
+}
+
 std::string utc_stamp() {
   const auto tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   std::tm tm{};
@@ -43,7 +61,22 @@ int main(int argc, char** argv) {
   }
 
   mf::research::EventStore store(journal);
-  mf::research::ExperimentRunner runner;
+  mf::research::ExperimentConfig cfg{};
+  const std::string strategy = arg(argc, argv, "--strategy", "mm");
+  if (strategy == "ofi") {
+    cfg.strategy_kind = mf::research::ExperimentConfig::StrategyKind::Ofi;
+  }
+  cfg.ofi_strategy.threshold = arg_f64(argc, argv, "--ofi-threshold", cfg.ofi_strategy.threshold);
+  cfg.ofi_strategy.max_position = arg_i64(argc, argv, "--max-position", cfg.ofi_strategy.max_position);
+  cfg.ofi_strategy.quote_size = arg_u64(argc, argv, "--quote-size", cfg.ofi_strategy.quote_size);
+  cfg.ofi_strategy.half_spread_ticks = arg_i64(argc, argv, "--half-spread-ticks", cfg.ofi_strategy.half_spread_ticks);
+  cfg.ofi_strategy.requote_cooldown_events = arg_u64(argc, argv, "--requote-cooldown-events", cfg.ofi_strategy.requote_cooldown_events);
+  cfg.ofi_strategy.signal.max_events = arg_u64(argc, argv, "--ofi-window-events", cfg.ofi_strategy.signal.max_events);
+  cfg.ofi_strategy.signal.max_window_ns = arg_u64(argc, argv, "--ofi-window-ns", cfg.ofi_strategy.signal.max_window_ns);
+  cfg.pnl.maker_rebate_per_share = arg_f64(argc, argv, "--maker-rebate", cfg.pnl.maker_rebate_per_share);
+  cfg.pnl.taker_fee_per_share = arg_f64(argc, argv, "--taker-fee", cfg.pnl.taker_fee_per_share);
+
+  mf::research::ExperimentRunner runner(cfg);
   mf::research::ExperimentReport report{};
   if (!runner.run(store, report)) {
     std::printf("experiment failed: crc_failures=%llu clock_rejects=%llu\n",

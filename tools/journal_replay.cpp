@@ -89,6 +89,8 @@ int main(int argc, char** argv) {
 
   mf::phase2::Pipeline pipeline(1024, 1U << 20U);
   CollectSink sink{};
+  constexpr std::uint64_t kDrainIntervalRecords = 100000;
+  const bool collect_merged = (mode == "backtest" || mode == "both");
   mf::core::BookEvent ev{};
   std::uint64_t ts = 0;
   std::uint64_t seq = 0;
@@ -105,6 +107,9 @@ int main(int argc, char** argv) {
                    static_cast<unsigned long long>(ev.exchange_ts_ns));
     }
     pipeline.on_event(ev);
+    if ((reader.stats().records_read % kDrainIntervalRecords) == 0ULL) {
+      pipeline.finalize(collect_merged ? &sink : nullptr);
+    }
     if (verbose && (reader.stats().records_read <= 100 || (reader.stats().records_read % 100000ULL) == 0ULL)) {
       std::fprintf(stderr,
                    "journal_replay: after_pipeline read=%llu journal_seq=%llu event_seq=%llu event_type=%u accepted=%llu buffered=%llu gaps=%llu\n",

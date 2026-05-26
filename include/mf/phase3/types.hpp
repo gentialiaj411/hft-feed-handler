@@ -22,6 +22,8 @@ struct Nbbo {
   std::uint32_t ask_qty{0};
   std::uint8_t bid_venue{0};
   std::uint8_t ask_venue{0};
+  std::uint64_t bid_venue_sequence{0};
+  std::uint64_t ask_venue_sequence{0};
 };
 
 struct FeatureVector {

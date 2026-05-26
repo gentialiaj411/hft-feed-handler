@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0
+// Minimal AF_XDP redirect program for loopback ingest.
+#include <linux/types.h>
+#include <linux/bpf.h>
+#include <linux/if_xdp.h>
+#include <bpf/bpf_helpers.h>
+
+struct {
+  __uint(type, BPF_MAP_TYPE_XSKMAP);
+  __uint(max_entries, 64);
+  __type(key, __u32);
+  __type(value, __u32);
+} xsks_map SEC(".maps");
+
+SEC("xdp")
+int afxdp_redirect(struct xdp_md* ctx) {
+  return bpf_redirect_map(&xsks_map, ctx->rx_queue_index, XDP_PASS);
+}
+
+char _license[] SEC("license") = "GPL";

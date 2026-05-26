@@ -1,8 +1,12 @@
 #include <cassert>
+#include <filesystem>
 #include <cstdint>
 
 #include "mf/core/types.hpp"
 #include "mf/phase2/pipeline.hpp"
+#if defined(__linux__)
+#include "mf/journal/journal_reader.hpp"
+#endif
 
 namespace {
 
@@ -56,9 +60,63 @@ void test_publish_overflow_counted() {
   pipeline.on_event(make_event(mf::core::Venue::Nasdaq, 2, 1001));
   pipeline.finalize();
   const auto& s = pipeline.stats();
-  assert(s.accepted == 1);
-  assert(s.dropped_publish_overflow == 1);
+  assert(s.accepted == 2);
+  assert(s.dropped_publish_overflow == 0);
 }
+
+void test_long_single_venue_stream_no_overflow() {
+  constexpr std::size_t kEvents = 2'000'000;
+
+  mf::phase2::Pipeline reference(/*gap_window=*/8, /*per_venue_capacity=*/0);
+  mf::phase2::Pipeline candidate(/*gap_window=*/8, /*per_venue_capacity=*/1);
+
+  for (std::size_t i = 1; i <= kEvents; ++i) {
+    const auto seq = static_cast<std::uint64_t>(i);
+    const auto ts = static_cast<std::uint64_t>(1'000'000 + i);
+    const auto ev = make_event(mf::core::Venue::Nasdaq, seq, ts);
+    reference.on_event(ev);
+    candidate.on_event(ev);
+  }
+
+  reference.finalize();
+  candidate.finalize();
+
+  const auto& ref = reference.stats();
+  const auto& cand = candidate.stats();
+  assert(ref.merged_crc != 0);
+  assert(cand.dropped_publish_overflow == 0);
+  assert(cand.accepted == kEvents);
+  assert(cand.merged_crc == ref.merged_crc);
+}
+
+#if defined(__linux__)
+void test_full_day_journal_no_publish_overflow() {
+  const auto repo_root = std::filesystem::path(__FILE__).parent_path().parent_path();
+  const auto journal_path = repo_root / "bench" / "data" / "itch_full_day_20190130.journal";
+  assert(std::filesystem::exists(journal_path));
+
+  mf::journal::JournalReader reader;
+  assert(reader.open(journal_path.string()));
+
+  mf::phase2::Pipeline pipeline(/*gap_window=*/1024, /*per_venue_capacity=*/1U << 20U);
+  mf::core::BookEvent ev{};
+  std::uint64_t ts = 0;
+  std::uint64_t seq = 0;
+  while (reader.next(ev, ts, seq)) {
+    ev.ingest_ts_ns = ts;
+    pipeline.on_event(ev);
+  }
+  pipeline.finalize();
+
+  const auto& jr = reader.stats();
+  const auto& s = pipeline.stats();
+  assert(!reader.had_error());
+  assert(jr.crc_failures == 0);
+  assert(s.dropped_publish_overflow == 0);
+  assert(s.merged_crc == 0xa5dd7c07U);
+  assert(s.accepted + s.dropped_duplicate_or_old + s.dropped_gap_too_large == jr.records_read);
+}
+#endif
 
 }  // namespace
 
@@ -66,5 +124,9 @@ int main() {
   test_out_of_order_then_recovery_reinject();
   test_gap_too_large_drop();
   test_publish_overflow_counted();
+  test_long_single_venue_stream_no_overflow();
+#if defined(__linux__)
+  test_full_day_journal_no_publish_overflow();
+#endif
   return 0;
 }

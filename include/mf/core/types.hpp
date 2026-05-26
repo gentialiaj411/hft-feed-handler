@@ -11,6 +11,7 @@ enum class Venue : std::uint8_t {
   Nasdaq = 0,
   Iex = 1,
   Cboe = 2,
+  Cme = 3,
 };
 
 enum class Side : std::uint8_t {
