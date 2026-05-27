@@ -6,22 +6,46 @@ on:
   push:
     branches: [ main ]
 
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-test-fuzz-smoke:
+  # ----------------------------------------------------------------------
+  # Build + tests on both GCC and Clang. The Clang job also runs the
+  # libFuzzer smoke targets (libFuzzer is Clang-only).
+  # ----------------------------------------------------------------------
+  build-test:
+    name: build-test (${{ matrix.compiler }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc
+            cc: gcc
+            cxx: g++
+            enable_fuzz: "OFF"
+          - compiler: clang
+            cc: clang
+            cxx: clang++
+            enable_fuzz: "ON"
     steps:
       - uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang
+          sudo apt-get install -y clang gcc g++ cmake
 
       - name: Configure
-        env:
-          CC: clang
-          CXX: clang++
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMF_ENABLE_FUZZ=ON
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DMF_ENABLE_FUZZ=${{ matrix.enable_fuzz }}
 
       - name: Build
         run: cmake --build build -j
@@ -29,11 +53,11 @@ jobs:
       - name: Parser tests
         run: ctest --test-dir build --output-on-failure -L parser
 
+      - name: Core (SPMC) tests
+        run: ctest --test-dir build --output-on-failure -L core
+
       - name: Phase 2 tests
         run: ctest --test-dir build --output-on-failure -L phase2
-
-      - name: Phase C replay determinism test
-        run: ctest --test-dir build --output-on-failure -L phase_c
 
       - name: Phase 3 tests
         run: ctest --test-dir build --output-on-failure -L phase3
@@ -41,13 +65,20 @@ jobs:
       - name: Phase 4 tests
         run: ctest --test-dir build --output-on-failure -L phase4
 
+      - name: Phase C (journal) tests
+        run: ctest --test-dir build --output-on-failure -L phase_c
+
       - name: Research tests
         run: ctest --test-dir build --output-on-failure -L research
+
+      - name: Runtime (sharded pipeline) tests
+        run: ctest --test-dir build --output-on-failure -L runtime
 
       - name: Phase E tests
         run: ctest --test-dir build --output-on-failure -L phase_e
 
       - name: Fuzz smoke (30s each)
+        if: matrix.compiler == 'clang'
         run: |
           for target in fuzz_nasdaq_parser fuzz_iex_parser fuzz_cboe_parser; do
             path="build/${target}"
@@ -57,3 +88,142 @@ jobs:
               echo "Skipping $target (not built)"
             fi
           done
+
+  # ----------------------------------------------------------------------
+  # ASAN + UBSAN over parser / phase 2 / phase 3 / phase 4 / phase C /
+  # research tests. Any sanitizer error is a real CI failure.
+  # ----------------------------------------------------------------------
+  asan-ubsan:
+    name: asan+ubsan (clang)
+    runs-on: ubuntu-latest
+    env:
+      ASAN_OPTIONS: "detect_leaks=1:halt_on_error=1:abort_on_error=1"
+      UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1:abort_on_error=1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake
+
+      # Debug build keeps NDEBUG undefined so assert() expressions are evaluated.
+      # Many tests rely on side effects inside assert(...), and RelWithDebInfo
+      # would elide them, reducing real coverage under the sanitizers.
+      - name: Configure (ASAN+UBSAN, Debug)
+        run: |
+          cmake -S . -B build-asan-ubsan \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DMF_ENABLE_FUZZ=OFF \
+            -DMF_BUILD_AF_XDP=OFF \
+            -DMF_BUILD_PHASE_B=OFF \
+            -DMF_BUILD_BENCH_SWEEP=OFF
+
+      - name: Build
+        run: cmake --build build-asan-ubsan -j
+
+      - name: Parser tests (ASAN+UBSAN)
+        run: ctest --test-dir build-asan-ubsan --output-on-failure -L parser
+
+      - name: Phase 2 tests (ASAN+UBSAN)
+        run: ctest --test-dir build-asan-ubsan --output-on-failure -L phase2
+
+      - name: Phase 3 tests (ASAN+UBSAN)
+        run: ctest --test-dir build-asan-ubsan --output-on-failure -L phase3
+
+      - name: Phase 4 tests (ASAN+UBSAN)
+        run: ctest --test-dir build-asan-ubsan --output-on-failure -L phase4
+
+      - name: Phase C journal tests (ASAN+UBSAN)
+        run: ctest --test-dir build-asan-ubsan --output-on-failure -L phase_c
+
+      - name: Research tests (ASAN+UBSAN)
+        run: ctest --test-dir build-asan-ubsan --output-on-failure -L research
+
+  # ----------------------------------------------------------------------
+  # TSAN over lock-free publication and concurrency-relevant tests:
+  # SPMC seqlock ring, SPSC feature/JIT bridges, sharded runtime fanout,
+  # and the Phase D external SPSC storage construction.
+  # ----------------------------------------------------------------------
+  tsan:
+    name: tsan (clang, lock-free + concurrency)
+    runs-on: ubuntu-latest
+    env:
+      TSAN_OPTIONS: "halt_on_error=1:second_deadlock_stack=1:abort_on_error=1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake
+
+      # Debug keeps assert() side effects alive; -O1 keeps TSAN throughput
+      # acceptable on the lock-free stress test.
+      - name: Configure (TSAN, Debug -O1)
+        run: |
+          cmake -S . -B build-tsan \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_CXX_FLAGS="-fsanitize=thread -O1 -g -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread" \
+            -DMF_ENABLE_FUZZ=OFF \
+            -DMF_BUILD_AF_XDP=OFF \
+            -DMF_BUILD_PHASE_B=OFF \
+            -DMF_BUILD_BENCH_SWEEP=OFF
+
+      - name: Build (concurrency-relevant test targets)
+        run: |
+          cmake --build build-tsan -j --target \
+            test_core_spmc_seqlock_ring \
+            test_phase3_feature_bridge \
+            test_phase2_jit_bridge \
+            test_runtime_shard_router \
+            test_runtime_sharded_pipeline_determinism \
+            test_phase_d_spsc_external_storage
+
+      - name: TSAN - SPMC seqlock ring
+        run: ctest --test-dir build-tsan --output-on-failure -R '^core_spmc_seqlock_ring$'
+
+      - name: TSAN - phase3 feature bridge (SPSC publish)
+        run: ctest --test-dir build-tsan --output-on-failure -R '^phase3_feature_bridge$'
+
+      - name: TSAN - phase2 JIT bridge (SPSC publish)
+        run: ctest --test-dir build-tsan --output-on-failure -R '^phase2_jit_bridge$'
+
+      - name: TSAN - sharded runtime (per-shard SPSC + workers)
+        run: ctest --test-dir build-tsan --output-on-failure -R '^runtime_'
+
+      - name: TSAN - Phase D external SPSC storage
+        run: ctest --test-dir build-tsan --output-on-failure -R '^phase_d_spsc_external_storage$'
+
+  # ----------------------------------------------------------------------
+  # Windows smoke build: MSVC, Debug, parser + phase 2/3/4 + research.
+  # Linux-only phases (B/C/D) are auto-disabled by CMakeLists.
+  # ----------------------------------------------------------------------
+  windows-smoke:
+    name: windows-smoke (msvc)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -S . -B build `
+            -DCMAKE_BUILD_TYPE=Debug `
+            -DMF_ENABLE_FUZZ=OFF `
+            -DMF_BUILD_BENCH_SWEEP=OFF
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Debug -j
+
+      - name: Parser / Phase 2-4 / Research smoke
+        shell: pwsh
+        run: ctest --test-dir build -C Debug --output-on-failure -L "^(parser|core|phase2|phase3|phase4|research)$"

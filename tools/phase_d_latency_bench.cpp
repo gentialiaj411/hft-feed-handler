@@ -200,7 +200,10 @@ int main(int argc, char** argv) {
   }
 
   std::string out = cfg.json_out.empty() ? ("bench/results/phase_d_pin_" + utc_stamp() + ".json") : cfg.json_out;
-  std::filesystem::create_directories(std::filesystem::path(out).parent_path());
+  if (const auto parent = std::filesystem::path(out).parent_path();
+      !parent.empty()) {
+    std::filesystem::create_directories(parent);
+  }
   std::ofstream os(out);
   os << "{";
   for (std::size_t i = 0; i < results.size(); ++i) {

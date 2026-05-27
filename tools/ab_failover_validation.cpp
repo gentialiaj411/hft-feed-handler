@@ -223,7 +223,10 @@ int main(int argc, char** argv) {
   const bool crc_match = baseline.crc == injected.crc;
   const std::uint64_t div_count = divergence_count(baseline.merged, injected.merged);
 
-  std::filesystem::create_directories(std::filesystem::path(cfg.output_path).parent_path());
+  if (const auto parent = std::filesystem::path(cfg.output_path).parent_path();
+      !parent.empty()) {
+    std::filesystem::create_directories(parent);
+  }
   std::ofstream os(cfg.output_path);
   os << "{\n";
   os << "  \"run_metadata\": {\n";

@@ -215,7 +215,10 @@ int main(int argc, char** argv) {
     }
 
     auto meta = mf::bench::capture_run_metadata(argc, argv);
-    std::filesystem::create_directories(std::filesystem::path(cfg.out_path).parent_path());
+    if (const auto parent = std::filesystem::path(cfg.out_path).parent_path();
+        !parent.empty()) {
+      std::filesystem::create_directories(parent);
+    }
     std::ofstream out(cfg.out_path, std::ios::trunc);
 
     out << "{\n";

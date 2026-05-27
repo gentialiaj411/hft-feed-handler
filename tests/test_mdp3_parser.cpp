@@ -1,5 +1,7 @@
 #include <cassert>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <span>
@@ -27,10 +29,18 @@ std::vector<std::byte> read_file_or_empty(const char* path) {
 }
 
 void test_sbe_header() {
-  const std::uint8_t raw[] = {0x2c, 0x00, 0x0b, 0x00, 0x20, 0x00, 0x01, 0x00, 0x09, 0x00};
+  // Header declares msg_size = 44 (0x2c). decode_sbe_header rejects messages
+  // whose declared size exceeds the provided span, so we have to provide a
+  // 44-byte buffer (10-byte header + 34 bytes of body padding) for the decode
+  // to succeed.
+  std::uint8_t raw[44] = {0x2c, 0x00, 0x0b, 0x00, 0x20, 0x00, 0x01, 0x00, 0x09, 0x00};
   mf::proto::mdp3::SbeMessageHeader hdr {};
-  assert(mf::proto::mdp3::decode_sbe_header(
-      std::span<const std::byte>(reinterpret_cast<const std::byte*>(raw), sizeof(raw)), hdr));
+  if (!mf::proto::mdp3::decode_sbe_header(
+          std::span<const std::byte>(reinterpret_cast<const std::byte*>(raw), sizeof(raw)),
+          hdr)) {
+    std::fprintf(stderr, "decode_sbe_header rejected canonical fixture\n");
+    std::abort();
+  }
   assert(hdr.msg_size == 44);
   assert(hdr.template_id == 32);
   assert(hdr.schema_id == 1);

@@ -46,7 +46,16 @@ BlockBootstrapResult block_bootstrap_mean_pvalue(
     }
   }
 
-  out.p_value_greater_than_zero = 1.0 - (static_cast<double>(le_zero) / static_cast<double>(iterations));
+  // One-sided p-value for the null hypothesis "true mean <= 0": fraction of
+  // bootstrap sample means that were <= 0. Small values reject the null and
+  // indicate a statistically positive mean.
+  //
+  // Note: prior to 2026-05-26 this returned `1 - p_value`, so the OFI
+  // backtest artifacts captured before that fix recorded the complement of
+  // the real bootstrap p-value (i.e., a reported "1.0" actually meant every
+  // bootstrap sample was positive, not that the result was insignificant).
+  out.p_value_greater_than_zero =
+      static_cast<double>(le_zero) / static_cast<double>(iterations);
   return out;
 }
 

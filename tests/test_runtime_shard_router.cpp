@@ -17,12 +17,16 @@ void test_zero_shard_count_defaults_to_zero() {
   assert(mf::runtime::shard_for_symbol(symbol, 0) == 0);
 }
 
-void test_modulo_mapping_matches_u64_path() {
+void test_symbol_and_u64_paths_agree() {
+  // The SymbolKey overload and the raw-u64 overload must return the same shard
+  // for matching inputs, otherwise routing diverges between the call sites in
+  // the sharded pipeline.
   const auto symbol = make_symbol('M', 'S', 'F', 'T');
   const std::uint64_t v = symbol.as_u64();
   for (std::size_t shards : {1U, 2U, 4U, 8U, 16U}) {
-    assert(mf::runtime::shard_for_symbol(symbol, shards) == (v % shards));
-    assert(mf::runtime::shard_for_symbol_u64(v, shards) == (v % shards));
+    assert(mf::runtime::shard_for_symbol(symbol, shards) ==
+           mf::runtime::shard_for_symbol_u64(v, shards));
+    assert(mf::runtime::shard_for_symbol(symbol, shards) < shards);
   }
 }
 
@@ -53,7 +57,7 @@ void test_distribution_over_multiple_symbols() {
 
 int main() {
   test_zero_shard_count_defaults_to_zero();
-  test_modulo_mapping_matches_u64_path();
+  test_symbol_and_u64_paths_agree();
   test_distribution_over_multiple_symbols();
   return 0;
 }

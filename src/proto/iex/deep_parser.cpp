@@ -18,8 +18,12 @@
 
 namespace {
 
+// Pass by value so call sites that read packed struct members
+// (alignment 1 under #pragma pack) do not bind a misaligned reference.
+// Binding a reference to a misaligned address is UB even on x86 where the
+// hardware load itself succeeds; UBSAN -fsanitize=alignment correctly flags it.
 template <typename T>
-T read_le(const T& v) noexcept {
+T read_le(T v) noexcept {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return v;
 #else

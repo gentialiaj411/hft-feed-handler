@@ -1,0 +1,90 @@
+// Recorded market-data replay/query API (not live exchange connectivity).
+syntax = "proto3";
+
+package mf.replay.v1;
+
+option java_multiple_files = true;
+
+// Read-only replay over CRC-validated book and NBBO journals.
+service TickReplayService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc StreamTicks(StreamTicksRequest) returns (stream BookEventMsg);
+  rpc QueryNbbo(QueryNbboRequest) returns (NbboSnapshot);
+  rpc StreamNbbo(StreamNbboRequest) returns (stream NbboEventMsg);
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string book_journal_path = 1;
+  string nbbo_journal_path = 2;
+  uint64 book_record_count = 3;
+  uint64 nbbo_record_count = 4;
+  int64 uptime_seconds = 5;
+  string build_id = 6;
+  // Fixed disclaimer so clients cannot mistake this for a live feed.
+  string service_mode = 7;
+}
+
+message StreamTicksRequest {
+  // ITCH-style symbol, e.g. "AAPL" (right-padded to 8 bytes internally). Empty = all symbols.
+  string symbol = 1;
+  uint64 start_ts_ns = 2;
+  uint64 end_ts_ns = 3;
+  // Max events to emit (0 = unlimited).
+  uint32 limit = 4;
+}
+
+message StreamNbboRequest {
+  string symbol = 1;
+  uint64 start_ts_ns = 2;
+  uint64 end_ts_ns = 3;
+  uint32 limit = 4;
+}
+
+message QueryNbboRequest {
+  string symbol = 1;
+  // Latest NBBO at or before this exchange timestamp (nanoseconds).
+  uint64 timestamp_ns = 2;
+}
+
+message BookEventMsg {
+  uint32 venue = 1;
+  uint32 event_type = 2;
+  uint64 sequence = 3;
+  uint64 exchange_ts_ns = 4;
+  uint64 ingest_ts_ns = 5;
+  string symbol = 6;
+  uint64 order_id = 7;
+  uint64 match_id = 8;
+  uint64 reference_order_id = 9;
+  uint32 qty = 10;
+  uint32 price = 11;
+  uint32 prev_qty = 12;
+  uint32 prev_price = 13;
+  uint32 side = 14;
+  uint32 raw_type = 15;
+  bool has_mpid = 16;
+  string mpid = 17;
+}
+
+message NbboEventMsg {
+  string symbol = 1;
+  uint64 exchange_ts_ns = 2;
+  uint64 ingest_ts_ns = 3;
+  bool has_bid = 4;
+  bool has_ask = 5;
+  uint32 bid_price = 6;
+  uint32 bid_qty = 7;
+  uint32 ask_price = 8;
+  uint32 ask_qty = 9;
+  uint32 bid_venue = 10;
+  uint32 ask_venue = 11;
+  uint64 bid_venue_sequence = 12;
+  uint64 ask_venue_sequence = 13;
+}
+
+message NbboSnapshot {
+  bool found = 1;
+  NbboEventMsg nbbo = 2;
+}

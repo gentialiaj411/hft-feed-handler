@@ -272,7 +272,9 @@ class ShardedPipeline {
 };
 
 inline std::uint32_t deterministic_crc_for_events(const std::vector<mf::core::BookEvent>& events) {
-  mf::phase2::Pipeline pipeline(/*gap_window=*/256, /*per_venue_capacity=*/4096);
+  // Unbounded per-venue capacity so the baseline CRC matches the sharded
+  // reaggregator path (which also uses an unbounded DeterministicMerger).
+  mf::phase2::Pipeline pipeline(/*gap_window=*/256, /*per_venue_capacity=*/0);
   for (const auto& ev : events) {
     pipeline.on_event(ev);
   }

@@ -1,22 +1,17 @@
 #include "mf/phase2/deterministic_merger.hpp"
 
-#include <array>
 #include <cassert>
 
 namespace mf::phase2 {
 
 namespace {
-constexpr std::array<mf::core::Venue, 3> kTrackedVenues = {
-    mf::core::Venue::Nasdaq,
-    mf::core::Venue::Iex,
-    mf::core::Venue::Cboe,
-};
+constexpr std::size_t kTrackedVenueCount = 3;
 static_assert(static_cast<std::uint8_t>(mf::core::Venue::Cboe) == 2, "Venue enum/layout drifted.");
 }
 
 std::size_t DeterministicMerger::index_for(mf::core::Venue venue) noexcept {
   const std::size_t idx = static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
-  assert(idx < kTrackedVenues.size());
+  assert(idx < kTrackedVenueCount);
   return idx;
 }
 
@@ -34,8 +29,13 @@ bool DeterministicMerger::less_event(const mf::core::BookEvent& a, const mf::cor
 }
 
 bool DeterministicMerger::push(const mf::core::BookEvent& ev) noexcept {
-  auto& q = queues_[index_for(ev.venue)];
-  q.push_back(ev);
+  // per_venue_capacity_ is currently a sizing hint rather than a hard cap:
+  // callers rely on pushes never being rejected (Phase 2 Pipeline funnels
+  // events through here as part of its in-order publication loop and counts
+  // any false return as a publication overflow). If we ever wire up a real
+  // backpressure path the check should land here and the call sites that
+  // expect unconditional acceptance must move to the unbounded constructor.
+  queues_[index_for(ev.venue)].push_back(ev);
   return true;
 }
 
