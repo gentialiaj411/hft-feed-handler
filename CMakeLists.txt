@@ -15,6 +15,7 @@ option(MF_BUILD_AF_XDP "Build AF_XDP loopback transport + tests (Linux + libbpf)
 option(MF_BUILD_JOURNAL "Build Phase C journal + replay tooling (Linux only)" ON)
 option(MF_BUILD_PHASE_D "Build Phase D NUMA/pinning/hugepage tooling (Linux only)" ON)
 option(MF_BUILD_BENCH_SWEEP "Build Phase E bench sweep + evidence tooling" ON)
+option(MF_BUILD_REPLAY_SERVICE "Build gRPC recorded-data replay/query service (Linux + protoc/grpc)" ON)
 option(MF_ENABLE_AVX2_HOTPATH "Compile AVX2 parser hot path where supported" ON)
 
 set(MF_HAS_LIBNUMA OFF)
@@ -287,8 +288,10 @@ if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_executable(test_nbbo_journal_determinism tests/test_nbbo_journal_determinism.cpp)
   target_link_libraries(test_nbbo_journal_determinism PRIVATE multifeed_core)
 
-  add_executable(journal_capture_loopback tools/journal_capture_loopback.cpp)
-  target_link_libraries(journal_capture_loopback PRIVATE multifeed_core)
+  if(MF_BUILD_PHASE_B)
+    add_executable(journal_capture_loopback tools/journal_capture_loopback.cpp)
+    target_link_libraries(journal_capture_loopback PRIVATE multifeed_core)
+  endif()
 
   add_executable(test_phase_c_journal_roundtrip tests/test_phase_c_journal_roundtrip.cpp)
   target_link_libraries(test_phase_c_journal_roundtrip PRIVATE multifeed_core)
@@ -296,8 +299,10 @@ if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_executable(test_phase_c_journal_torn_record tests/test_phase_c_journal_torn_record.cpp)
   target_link_libraries(test_phase_c_journal_torn_record PRIVATE multifeed_core)
 
-  add_executable(test_phase_c_replay_determinism tests/test_phase_c_replay_determinism.cpp)
-  target_link_libraries(test_phase_c_replay_determinism PRIVATE multifeed_core)
+  if(MF_BUILD_PHASE_B)
+    add_executable(test_phase_c_replay_determinism tests/test_phase_c_replay_determinism.cpp)
+    target_link_libraries(test_phase_c_replay_determinism PRIVATE multifeed_core)
+  endif()
 
   add_executable(test_phase_c_journal_format_version tests/test_phase_c_journal_format_version.cpp)
   target_link_libraries(test_phase_c_journal_format_version PRIVATE multifeed_core)
@@ -327,6 +332,74 @@ if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     add_executable(test_research_experiment_runner tests/test_research_experiment_runner.cpp)
     target_link_libraries(test_research_experiment_runner PRIVATE multifeed_core)
+  endif()
+
+  add_executable(test_replay_service_symbol tests/test_replay_service_symbol.cpp)
+  target_link_libraries(test_replay_service_symbol PRIVATE multifeed_core)
+
+  if(MF_BUILD_REPLAY_SERVICE)
+    find_package(Protobuf REQUIRED)
+    find_program(GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
+    if(NOT GRPC_CPP_PLUGIN_EXECUTABLE)
+      message(STATUS "grpc_cpp_plugin not found; MF_BUILD_REPLAY_SERVICE disabled.")
+      set(MF_BUILD_REPLAY_SERVICE OFF)
+    endif()
+  endif()
+
+  if(MF_BUILD_REPLAY_SERVICE)
+    set(MF_TICK_PROTO ${CMAKE_SOURCE_DIR}/proto/tick_service.proto)
+    set(MF_TICK_GEN_DIR ${CMAKE_BINARY_DIR}/generated)
+    file(MAKE_DIRECTORY ${MF_TICK_GEN_DIR})
+    set(MF_TICK_PB_CC ${MF_TICK_GEN_DIR}/tick_service.pb.cc)
+    set(MF_TICK_PB_H ${MF_TICK_GEN_DIR}/tick_service.pb.h)
+    set(MF_TICK_GRPC_CC ${MF_TICK_GEN_DIR}/tick_service.grpc.pb.cc)
+    set(MF_TICK_GRPC_H ${MF_TICK_GEN_DIR}/tick_service.grpc.pb.h)
+    add_custom_command(
+        OUTPUT ${MF_TICK_PB_CC} ${MF_TICK_PB_H} ${MF_TICK_GRPC_CC} ${MF_TICK_GRPC_H}
+        COMMAND protobuf::protoc
+        ARGS --proto_path=${CMAKE_SOURCE_DIR}/proto
+             --cpp_out=${MF_TICK_GEN_DIR}
+             --grpc_out=${MF_TICK_GEN_DIR}
+             --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN_EXECUTABLE}
+             ${MF_TICK_PROTO}
+        DEPENDS ${MF_TICK_PROTO}
+        COMMENT "Generating tick_service protobuf/gRPC sources"
+    )
+    add_library(tick_service_proto STATIC ${MF_TICK_PB_CC} ${MF_TICK_GRPC_CC})
+    target_include_directories(tick_service_proto PUBLIC ${MF_TICK_GEN_DIR})
+    target_link_libraries(tick_service_proto PUBLIC protobuf::libprotobuf)
+    find_package(gRPC CONFIG QUIET)
+    if(gRPC_FOUND)
+      target_link_libraries(tick_service_proto PUBLIC gRPC::grpc++)
+    else()
+      find_package(PkgConfig QUIET)
+      if(PkgConfig_FOUND)
+        pkg_check_modules(GRPCPP grpc++)
+        if(GRPCPP_FOUND)
+          target_link_libraries(tick_service_proto PUBLIC ${GRPCPP_LIBRARIES})
+          target_include_directories(tick_service_proto PUBLIC ${GRPCPP_INCLUDE_DIRS})
+          target_compile_options(tick_service_proto PUBLIC ${GRPCPP_CFLAGS_OTHER})
+        else()
+          message(STATUS "libgrpc++ not found via pkg-config; MF_BUILD_REPLAY_SERVICE disabled.")
+          set(MF_BUILD_REPLAY_SERVICE OFF)
+        endif()
+      else()
+        message(STATUS "PkgConfig not found; MF_BUILD_REPLAY_SERVICE disabled.")
+        set(MF_BUILD_REPLAY_SERVICE OFF)
+      endif()
+    endif()
+  endif()
+
+  if(MF_BUILD_REPLAY_SERVICE)
+    add_library(multifeed_replay_service
+        src/service/replay_catalog.cpp
+        src/service/tick_replay_service.cpp
+    )
+    target_include_directories(multifeed_replay_service PUBLIC include ${MF_TICK_GEN_DIR})
+    target_link_libraries(multifeed_replay_service PUBLIC multifeed_core tick_service_proto)
+
+    add_executable(tick_service_server tools/tick_service_server.cpp)
+    target_link_libraries(tick_service_server PRIVATE multifeed_replay_service)
   endif()
 endif()
 
@@ -542,3 +615,5 @@ mf_add_test(research_experiment_runner test_research_experiment_runner research)
 mf_add_test(bootstrap test_bootstrap research)
 mf_add_test(runtime_shard_router test_runtime_shard_router runtime)
 mf_add_test(runtime_sharded_pipeline_determinism test_runtime_sharded_pipeline_determinism runtime)
+
+mf_add_test(replay_service_symbol test_replay_service_symbol replay)
