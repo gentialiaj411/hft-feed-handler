@@ -12,7 +12,10 @@ enum class Venue : std::uint8_t {
   Iex = 1,
   Cboe = 2,
   Cme = 3,
+  Bitfinex = 4,
 };
+
+inline constexpr std::size_t kVenueSlotCount = 5;
 
 enum class Side : std::uint8_t {
   Buy = 0,

@@ -7,7 +7,7 @@ namespace mf::phase2 {
 
 std::size_t AbArbiter::venue_index(mf::core::Venue venue) noexcept {
   const std::size_t idx = static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
-  assert(idx < 3);
+  assert(idx < mf::core::kVenueSlotCount);
   return idx;
 }
 

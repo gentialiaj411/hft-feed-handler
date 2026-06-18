@@ -65,14 +65,14 @@ class OrderBookEngine {
   bool put_order(std::uint64_t key, const OrderRef& value) noexcept;
   void erase_order(std::uint64_t key) noexcept;
 
-  std::array<std::unordered_map<std::uint64_t, VenueBook>, 3> books_{};
+  std::array<std::unordered_map<std::uint64_t, VenueBook>, mf::core::kVenueSlotCount> books_{};
   std::vector<OrderSlot> orders_{};
   std::size_t order_mask_{0};
   std::size_t order_count_{0};
   std::uint64_t dropped_order_inserts_{0};
-  std::array<std::uint64_t, 3> cached_symbols_{};
-  std::array<VenueBook*, 3> cached_books_{};
-  std::array<bool, 3> cached_valid_{};
+  std::array<std::uint64_t, mf::core::kVenueSlotCount> cached_symbols_{};
+  std::array<VenueBook*, mf::core::kVenueSlotCount> cached_books_{};
+  std::array<bool, mf::core::kVenueSlotCount> cached_valid_{};
 };
 
 }  // namespace mf::phase3

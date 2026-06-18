@@ -23,7 +23,7 @@ class DeterministicMerger {
   static bool less_event(const mf::core::BookEvent& a, const mf::core::BookEvent& b) noexcept;
 
   std::size_t per_venue_capacity_{0};
-  std::array<std::deque<mf::core::BookEvent>, 3> queues_{};
+  std::array<std::deque<mf::core::BookEvent>, mf::core::kVenueSlotCount> queues_{};
 };
 
 }  // namespace mf::phase2

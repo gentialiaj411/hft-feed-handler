@@ -20,7 +20,7 @@ class ReplayRecoveryStore {
 
  private:
   std::size_t max_events_per_venue_{512};
-  std::array<std::deque<mf::core::BookEvent>, 3> by_venue_{};
+  std::array<std::deque<mf::core::BookEvent>, mf::core::kVenueSlotCount> by_venue_{};
 };
 
 class ReplayRecoverySimulator final : public IRecoveryHandler {

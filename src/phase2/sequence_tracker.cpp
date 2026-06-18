@@ -8,12 +8,8 @@ namespace mf::phase2 {
 
 namespace {
 constexpr std::uint64_t kMinRingSlots = 2;
-constexpr std::array<mf::core::Venue, 3> kTrackedVenues = {
-    mf::core::Venue::Nasdaq,
-    mf::core::Venue::Iex,
-    mf::core::Venue::Cboe,
-};
 static_assert(static_cast<std::uint8_t>(mf::core::Venue::Cboe) == 2, "Venue enum/layout drifted.");
+static_assert(static_cast<std::uint8_t>(mf::core::Venue::Bitfinex) == 4, "Venue enum/layout drifted.");
 }  // namespace
 
 SequenceTracker::SequenceTracker(std::uint64_t gap_window)
@@ -96,8 +92,8 @@ void SequenceTracker::force_advance(std::uint64_t new_next) noexcept {
 }
 
 MultiVenueSequenceTracker::MultiVenueSequenceTracker(std::uint64_t gap_window) {
-  trackers_.reserve(kTrackedVenues.size());
-  for (std::size_t i = 0; i < kTrackedVenues.size(); ++i) {
+  trackers_.reserve(mf::core::kVenueSlotCount);
+  for (std::size_t i = 0; i < mf::core::kVenueSlotCount; ++i) {
     trackers_.emplace_back(gap_window);
   }
 }

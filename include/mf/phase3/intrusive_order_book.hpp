@@ -81,15 +81,15 @@ class IntrusiveOrderBook {
   void reduce_order(std::uint64_t key, std::uint32_t qty, bool delete_all) noexcept;
   void replace_order(mf::core::Venue venue, std::uint64_t symbol, const mf::core::BookEvent& ev) noexcept;
 
-  std::array<std::unordered_map<std::uint64_t, VenueBook>, 3> books_{};
+  std::array<std::unordered_map<std::uint64_t, VenueBook>, mf::core::kVenueSlotCount> books_{};
   std::vector<OrderNode> nodes_{};
   std::vector<std::uint32_t> free_list_{};
   std::unordered_map<std::uint64_t, std::uint32_t> order_index_{};
   std::size_t live_order_count_{0};
   std::uint64_t dropped_order_inserts_{0};
-  std::array<std::uint64_t, 3> cached_symbols_{};
-  std::array<VenueBook*, 3> cached_books_{};
-  std::array<bool, 3> cached_valid_{};
+  std::array<std::uint64_t, mf::core::kVenueSlotCount> cached_symbols_{};
+  std::array<VenueBook*, mf::core::kVenueSlotCount> cached_books_{};
+  std::array<bool, mf::core::kVenueSlotCount> cached_valid_{};
 };
 
 }  // namespace mf::phase3

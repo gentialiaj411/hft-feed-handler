@@ -39,7 +39,7 @@ class NbboConsolidator {
     std::uint64_t ask_sequence{0};
   };
   struct SymbolState {
-    std::array<VenueTop, 3> venues{};
+    std::array<VenueTop, mf::core::kVenueSlotCount> venues{};
     Nbbo nbbo{};
   };
 

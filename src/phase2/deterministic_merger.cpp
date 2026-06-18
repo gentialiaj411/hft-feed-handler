@@ -5,7 +5,7 @@
 namespace mf::phase2 {
 
 namespace {
-constexpr std::size_t kTrackedVenueCount = 3;
+constexpr std::size_t kTrackedVenueCount = mf::core::kVenueSlotCount;
 static_assert(static_cast<std::uint8_t>(mf::core::Venue::Cboe) == 2, "Venue enum/layout drifted.");
 }
 

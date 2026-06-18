@@ -44,7 +44,7 @@ class AbArbiter {
   static std::size_t venue_index(mf::core::Venue venue) noexcept;
 
   GapAwareSequencer sequencer_;
-  std::array<std::vector<mf::core::BookEvent>, 3> pending_{};
+  std::array<std::vector<mf::core::BookEvent>, mf::core::kVenueSlotCount> pending_{};
   std::vector<mf::core::BookEvent> ready_{};
   AbArbiterStats stats_{};
 };

@@ -26,7 +26,7 @@ IntrusiveOrderBook::VenueBook::VenueBook() {
 
 std::size_t IntrusiveOrderBook::venue_index(mf::core::Venue venue) noexcept {
   const auto idx = static_cast<std::size_t>(static_cast<std::uint8_t>(venue));
-  assert(idx < 3);
+  assert(idx < mf::core::kVenueSlotCount);
   return idx;
 }
 

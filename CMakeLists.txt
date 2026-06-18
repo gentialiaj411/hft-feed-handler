@@ -16,6 +16,7 @@ option(MF_BUILD_JOURNAL "Build Phase C journal + replay tooling (Linux only)" ON
 option(MF_BUILD_PHASE_D "Build Phase D NUMA/pinning/hugepage tooling (Linux only)" ON)
 option(MF_BUILD_BENCH_SWEEP "Build Phase E bench sweep + evidence tooling" ON)
 option(MF_BUILD_REPLAY_SERVICE "Build gRPC recorded-data replay/query service (Linux + protoc/grpc)" ON)
+option(MF_BUILD_LIVE_INGEST "Build live Bitfinex WebSocket ingest (Linux + Boost.Beast + OpenSSL)" OFF)
 option(MF_ENABLE_AVX2_HOTPATH "Compile AVX2 parser hot path where supported" ON)
 
 set(MF_HAS_LIBNUMA OFF)
@@ -129,6 +130,18 @@ if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(multifeed_core PRIVATE
         src/research/experiment_runner.cpp
         src/research/metrics/bootstrap.cpp
+        src/research/alpha_lab/label_builder.cpp
+        src/research/alpha_lab/feature_store.cpp
+        src/research/alpha_lab/signal_registry.cpp
+        src/research/alpha_lab/signal_evaluator.cpp
+        src/research/alpha_lab/purged_cv.cpp
+        src/research/alpha_lab/trial_registry.cpp
+        src/research/alpha_lab/deflated_sharpe.cpp
+        src/research/alpha_lab/pbo.cpp
+        src/research/alpha_lab/cost_model.cpp
+        src/research/alpha_lab/capacity_sweep.cpp
+        src/research/alpha_lab/strategy_bridge.cpp
+        src/research/alpha_lab/tearsheet.cpp
     )
   endif()
 elseif(MF_BUILD_JOURNAL)
@@ -324,6 +337,36 @@ if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_executable(ofi_backtest tools/ofi_backtest.cpp)
     target_link_libraries(ofi_backtest PRIVATE multifeed_core)
 
+    add_executable(alpha_lab_materialize tools/alpha_lab_materialize.cpp)
+    target_link_libraries(alpha_lab_materialize PRIVATE multifeed_core)
+
+    add_executable(alpha_lab tools/alpha_lab.cpp)
+    target_link_libraries(alpha_lab PRIVATE multifeed_core)
+
+    add_executable(test_alpha_lab_baseline tests/test_alpha_lab_baseline.cpp)
+    target_link_libraries(test_alpha_lab_baseline PRIVATE multifeed_core)
+
+    add_executable(test_alpha_lab_labels tests/test_alpha_lab_labels.cpp)
+    target_link_libraries(test_alpha_lab_labels PRIVATE multifeed_core)
+
+    add_executable(test_alpha_lab_no_lookahead tests/test_alpha_lab_no_lookahead.cpp)
+    target_link_libraries(test_alpha_lab_no_lookahead PRIVATE multifeed_core)
+
+    add_executable(test_alpha_lab_purged_cv tests/test_alpha_lab_purged_cv.cpp)
+    target_link_libraries(test_alpha_lab_purged_cv PRIVATE multifeed_core)
+
+    add_executable(test_alpha_lab_deflated_sharpe tests/test_alpha_lab_deflated_sharpe.cpp)
+    target_link_libraries(test_alpha_lab_deflated_sharpe PRIVATE multifeed_core)
+
+    add_executable(test_alpha_lab_pbo tests/test_alpha_lab_pbo.cpp)
+    target_link_libraries(test_alpha_lab_pbo PRIVATE multifeed_core)
+
+    add_executable(test_alpha_lab_signals tests/test_alpha_lab_signals.cpp)
+    target_link_libraries(test_alpha_lab_signals PRIVATE multifeed_core)
+
+    add_executable(test_alpha_lab_repro tests/test_alpha_lab_repro.cpp)
+    target_link_libraries(test_alpha_lab_repro PRIVATE multifeed_core)
+
     add_executable(test_bootstrap tests/test_bootstrap.cpp)
     target_link_libraries(test_bootstrap PRIVATE multifeed_core)
 
@@ -401,6 +444,45 @@ if(MF_BUILD_JOURNAL AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_executable(tick_service_server tools/tick_service_server.cpp)
     target_link_libraries(tick_service_server PRIVATE multifeed_replay_service)
   endif()
+endif()
+
+if(MF_BUILD_LIVE_INGEST AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  find_package(OpenSSL QUIET)
+  if(OpenSSL_FOUND)
+    add_library(multifeed_live
+        src/live/bitfinex/fixed_point.cpp
+        src/live/bitfinex/wire_parse.cpp
+        src/live/bitfinex/on_book.cpp
+        src/live/bitfinex/lowering.cpp
+        src/live/bitfinex/snapshot_sidecar.cpp
+        src/live/bitfinex/resync_state_machine.cpp
+    )
+    target_include_directories(multifeed_live PUBLIC include)
+    target_link_libraries(multifeed_live PUBLIC multifeed_core)
+
+    add_executable(test_bitfinex_lowering tests/test_bitfinex_lowering.cpp)
+    target_link_libraries(test_bitfinex_lowering PRIVATE multifeed_live)
+
+    add_executable(test_bitfinex_resync tests/test_bitfinex_resync.cpp)
+    target_link_libraries(test_bitfinex_resync PRIVATE multifeed_live)
+
+    # Beast and Boost.System are header-only since Boost 1.69; distros no longer
+    # ship a compiled libboost_system, so require headers only.
+    find_package(Boost QUIET)
+    if(Boost_FOUND)
+      target_sources(multifeed_live PRIVATE src/live/bitfinex/ws_client.cpp)
+      target_link_libraries(multifeed_live PUBLIC Boost::headers OpenSSL::SSL)
+      add_executable(live_bitfinex_ingest tools/live_bitfinex_ingest.cpp)
+      target_link_libraries(live_bitfinex_ingest PRIVATE multifeed_live)
+    else()
+      message(STATUS "live_bitfinex_ingest skipped: Boost.Beast (Boost.System) not found.")
+    endif()
+  else()
+    message(STATUS "MF_BUILD_LIVE_INGEST disabled: OpenSSL not found.")
+    set(MF_BUILD_LIVE_INGEST OFF)
+  endif()
+elseif(MF_BUILD_LIVE_INGEST)
+  message(STATUS "MF_BUILD_LIVE_INGEST requested but disabled: Linux-only.")
 endif()
 
 if(MF_BUILD_PHASE_D AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -613,7 +695,38 @@ mf_add_test(ofi_strategy test_ofi_strategy research)
 mf_add_test(risk_metrics test_risk_metrics research)
 mf_add_test(research_experiment_runner test_research_experiment_runner research)
 mf_add_test(bootstrap test_bootstrap research)
+mf_add_test(alpha_lab_baseline test_alpha_lab_baseline alpha_lab_baseline)
+mf_add_test(alpha_lab_labels test_alpha_lab_labels alpha_lab)
+mf_add_test(alpha_lab_no_lookahead test_alpha_lab_no_lookahead alpha_lab)
+mf_add_test(alpha_lab_purged_cv test_alpha_lab_purged_cv alpha_lab)
+mf_add_test(alpha_lab_deflated_sharpe test_alpha_lab_deflated_sharpe alpha_lab)
+mf_add_test(alpha_lab_pbo test_alpha_lab_pbo alpha_lab)
+mf_add_test(alpha_lab_signals test_alpha_lab_signals alpha_lab)
+mf_add_test(alpha_lab_repro test_alpha_lab_repro alpha_lab)
+if(TARGET test_alpha_lab_baseline)
+  set_tests_properties(alpha_lab_baseline PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
+if(TARGET test_alpha_lab_labels)
+  set_tests_properties(alpha_lab_labels PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
+if(TARGET test_alpha_lab_no_lookahead)
+  set_tests_properties(alpha_lab_no_lookahead PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
+if(TARGET test_alpha_lab_repro)
+  set_tests_properties(alpha_lab_repro PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
 mf_add_test(runtime_shard_router test_runtime_shard_router runtime)
 mf_add_test(runtime_sharded_pipeline_determinism test_runtime_sharded_pipeline_determinism runtime)
 
 mf_add_test(replay_service_symbol test_replay_service_symbol replay)
+
+if(MF_BUILD_LIVE_INGEST)
+  mf_add_test(live_bitfinex_lowering test_bitfinex_lowering live)
+  mf_add_test(live_bitfinex_resync test_bitfinex_resync live)
+  if(TARGET test_bitfinex_lowering)
+    set_tests_properties(live_bitfinex_lowering PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  endif()
+  if(TARGET test_bitfinex_resync)
+    set_tests_properties(live_bitfinex_resync PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  endif()
+endif()

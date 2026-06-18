@@ -51,7 +51,7 @@ class Pipeline {
   ReplayRecoverySimulator recovery_sim_;
   GapAwareSequencer sequencer_;
   DeterministicMerger merger_;
-  std::array<std::map<std::uint64_t, mf::core::BookEvent>, 3> pending_by_venue_{};
+  std::array<std::map<std::uint64_t, mf::core::BookEvent>, mf::core::kVenueSlotCount> pending_by_venue_{};
   PipelineStats stats_{};
 };
 
